@@ -1,3 +1,8 @@
+---
+title: Decisiones y pendientes
+nav_order: 6
+---
+
 # Decisiones y pendientes
 
 Aquí se apunta **qué se ha decidido y por qué**, y lo que queda **pendiente de resolver**. Si una decisión cambia, no se borra: se añade la nueva debajo con su fecha.
@@ -42,6 +47,5 @@ Aquí se apunta **qué se ha decidido y por qué**, y lo que queda **pendiente d
 | Probar previews y deploy | La identificación con Google y los workflows están configurados pero **sin probar**: solo se pueden probar cuando el código esté subido a GitHub. | Ver cada PR en una URL de prueba. |
 | Asignar responsables | Quién lleva cada una de las 4 funcionalidades de `PRODUCTO.md` y sus usuarios de GitHub. | Las issues y las invitaciones al repo. |
 | Fotos reales de los objetos | Storage exige plan Blaze. Opciones cuando toque: Blaze con alerta de presupuesto, o servicio externo gratuito. | Nada en la fase 1 (imágenes de ejemplo). |
-| Compromiso de revisión de PRs | Propuesta: el lead revisa en menos de 24 h laborables. | — |
-| Sesiones de equipo y bitácora | Cadencia de las sesiones y quién escribe la entrada de bitácora (propuesta: rotatorio). | — |
+| Cadencia de las sesiones de equipo | Por decidir con el equipo en la primera sesión. La bitácora la escribe alguien distinto cada vez. | — |
 | **Probar `firestore.rules` y `services/firebase/` antes de usar datos reales** | Están escritas pero **sin probar**. Es una prueba única, del lead, justo antes de la fase 2; la forma segura es con los emuladores de Firebase (necesitan Java). **No activar `VITE_USE_MOCKS=false` en producción sin haberla hecho**: un fallo en las reglas podría exponer detalles ocultos o emails. | Pasar a datos reales (fase 2). No bloquea la fase 1. |

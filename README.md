@@ -2,6 +2,8 @@
 
 Web para que los objetos perdidos vuelvan a su dueño: quien encuentra algo lo publica, y quien lo ha perdido lo busca y lo reclama.
 
+- **Documentación completa (web):** https://aizetachan.github.io/finder-objetos-perdidos/
+- Primera vez aquí: [`docs/GUIA-EQUIPO.md`](docs/GUIA-EQUIPO.md) · El día a día: [`docs/FLUJO-DE-TRABAJO.md`](docs/FLUJO-DE-TRABAJO.md)
 - Qué es el producto y quién hace qué: [`docs/PRODUCTO.md`](docs/PRODUCTO.md)
 - Qué se ha decidido y qué está pendiente: [`docs/DECISIONES.md`](docs/DECISIONES.md)
 - Con qué datos trabaja la web (de ejemplo o reales): [`docs/ENTORNOS.md`](docs/ENTORNOS.md)

@@ -1,3 +1,8 @@
+---
+title: Producto
+nav_order: 4
+---
+
 # Finder — Definición del producto
 
 > **Estado: punto de partida aprobado (2026-09-17).** Es un esqueleto: cada persona lo irá ampliando en su rama a medida que defina su funcionalidad. Lo marcado con ❓ son decisiones abiertas que se tomarán sobre la marcha.
