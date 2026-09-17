@@ -1,0 +1,13 @@
+# Quién tiene que aprobar los cambios. La última línea que coincide es la que manda.
+
+# Todo el código: el lead.
+*                @aizetachan
+
+# La documentación no tiene dueño: la puede aprobar cualquier compañero.
+/docs/
+
+# Zona protegida (infraestructura y reglas): siempre el lead.
+/.github/        @aizetachan
+/AGENTS.md       @aizetachan
+/CLAUDE.md       @aizetachan
+/.claude/        @aizetachan

@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Scripts de instalación de dependencias: por seguridad pnpm no ejecuta ninguno
+# salvo que se permita aquí. Estos dos no hacen falta, así que se deniegan.
+allowBuilds:
+  '@firebase/util': false
+  protobufjs: false

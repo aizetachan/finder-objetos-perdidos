@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "typescript",
+    "oxc"
+  ],
+  "ignorePatterns": [
+    "dist"
+  ],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "firebase",
+              "firebase/*",
+              "@/lib/firebase"
+            ],
+            "message": "Las pantallas no hablan con Firebase. Usa `services` (import { services } from '@/services')."
+          },
+          {
+            "group": [
+              "@/services/mock",
+              "@/services/mock/*",
+              "@/services/firebase",
+              "@/services/firebase/*"
+            ],
+            "message": "No importes una implementación concreta. Usa `services` (import { services } from '@/services')."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/components/ui/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": [
+        "src/services/**",
+        "src/lib/firebase.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}

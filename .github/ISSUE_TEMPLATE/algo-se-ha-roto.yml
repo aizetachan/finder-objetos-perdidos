@@ -1,0 +1,18 @@
+name: Algo se ha roto
+description: La web falla, no arranca, o algo ha dejado de funcionar.
+labels: [roto]
+body:
+  - type: textarea
+    attributes:
+      label: Qué estabas haciendo
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Qué esperabas y qué ha pasado
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Mensaje de error o captura
+      description: Copia el texto del error tal cual, o pega una captura.

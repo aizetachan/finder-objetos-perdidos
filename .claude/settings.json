@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/.github/**)",
+      "Edit(/firebase.json)",
+      "Edit(/.firebaserc)",
+      "Edit(/firestore.rules)",
+      "Edit(/firestore.indexes.json)",
+      "Edit(/functions/**)",
+      "Edit(/AGENTS.md)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/.claude/**)",
+      "Edit(/apps/web/src/components/ui/**)",
+      "Edit(/apps/web/src/index.css)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase hosting:*)",
+      "Bash(firebase firestore:*)",
+      "Bash(firebase projects:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push origin main:*)"
+    ]
+  }
+}

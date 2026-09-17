@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// REGLAS DE SEGURIDAD DE FIRESTORE
+// Son lo único que protege los datos reales: la web es pública y cualquiera puede ver su código.
+// Principio: todo está prohibido salvo lo que aquí se permite expresamente.
+// Deben decir lo mismo que apps/web/src/services/mock/ (que imita estos permisos).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Campos que cambian entre el documento actual y el que se quiere guardar.
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // — users: perfil público. Cada persona solo escribe el suyo. —
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isUser(userId) && request.resource.data.id == userId;
+      allow update: if isUser(userId) && !changedKeys().hasAny(['id', 'createdAt']);
+    }
+
+    // — items: la parte pública la lee cualquiera. —
+    match /items/{itemId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.id == itemId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'published';
+
+      // Solo quien lo publicó, y sin cambiar de quién es.
+      allow update: if isUser(resource.data.createdBy)
+        && !changedKeys().hasAny(['id', 'createdBy', 'createdAt', 'type']);
+
+      // Detalles ocultos: solo quien publicó el objeto.
+      match /private/{docId} {
+        allow read: if isUser(get(/databases/$(database)/documents/items/$(itemId)).data.createdBy);
+        // getAfter: el objeto y sus detalles se crean a la vez, en la misma operación.
+        allow write: if isUser(getAfter(/databases/$(database)/documents/items/$(itemId)).data.createdBy);
+      }
+    }
+
+    // — claims: solo las ven las dos partes. —
+    match /claims/{claimId} {
+      allow read: if signedIn()
+        && (resource.data.claimantId == request.auth.uid
+          || resource.data.itemOwnerId == request.auth.uid);
+
+      // Una reclamación por persona y objeto: el id es "{itemId}_{claimantId}".
+      // No se puede reclamar un objeto propio ni uno que ya no esté publicado.
+      allow create: if signedIn()
+        && claimId == request.resource.data.itemId + '_' + request.auth.uid
+        && request.resource.data.id == claimId
+        && request.resource.data.claimantId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && !('ownerContact' in request.resource.data)
+        && request.resource.data.itemOwnerId != request.auth.uid
+        && get(/databases/$(database)/documents/items/$(request.resource.data.itemId)).data.createdBy
+          == request.resource.data.itemOwnerId
+        && get(/databases/$(database)/documents/items/$(request.resource.data.itemId)).data.status
+          == 'published';
+
+      // Solo responde quien publicó el objeto, una vez, y solo toca la respuesta.
+      allow update: if isUser(resource.data.itemOwnerId)
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'rejected']
+        && changedKeys().hasOnly(['status', 'resolvedAt', 'ownerContact']);
+    }
+
+    // Todo lo demás: prohibido.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

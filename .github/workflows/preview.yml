@@ -1,0 +1,82 @@
+# Publica cada PR en una dirección de prueba de Firebase Hosting y deja el enlace como
+# comentario en la PR. SIEMPRE con datos de ejemplo: una preview nunca toca los datos reales.
+#
+# El enlace vive mientras la PR esté abierta: Firebase obliga a poner una caducidad (máximo
+# 30 días), pero cada vez que se sube un cambio a la PR el plazo vuelve a empezar, y al cerrar
+# o fusionar la PR el enlace se borra. Si una PR lleva más de 30 días sin cambios, basta con
+# volver a lanzar este workflow desde la pestaña "Checks" de la PR.
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+permissions:
+  contents: read
+  id-token: write # para identificarse ante Google sin contraseñas (Workload Identity)
+  pull-requests: write # para dejar el comentario con el enlace
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Publicar preview
+    # Las PR que vienen de copias (forks) del repo no tienen permiso para publicar.
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Construir la web (con datos de ejemplo)
+        run: pnpm build
+        env:
+          VITE_USE_MOCKS: 'true'
+
+      - name: Identificarse en Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Publicar en un canal de preview
+        id: deploy
+        run: |
+          npx --yes firebase-tools@15.28.2 hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" \
+            --expires 30d --project "${{ vars.FIREBASE_PROJECT_ID }}" --json > deploy.json
+          cat deploy.json
+          url=$(node -e 'const r=require("./deploy.json").result;console.log(Object.values(r)[0].url)')
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comentar el enlace en la PR
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "### 🔎 Preview lista
+          **${{ steps.deploy.outputs.url }}**
+
+          Construida con datos de ejemplo a partir de \`${{ github.event.pull_request.head.sha }}\`. El enlace se mantiene mientras la PR esté abierta y se borra al cerrarla."
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  cleanup:
+    name: Borrar preview al cerrar la PR
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Identificarse en Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Borrar el canal de preview
+        # Si la PR no tenía preview (p. ej. solo tocaba documentación), no pasa nada.
+        run: |
+          npx --yes firebase-tools@15.28.2 hosting:channel:delete "pr-${{ github.event.pull_request.number }}" \
+            --force --project "${{ vars.FIREBASE_PROJECT_ID }}" || true

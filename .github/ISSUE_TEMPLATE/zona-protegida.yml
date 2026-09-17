@@ -1,0 +1,22 @@
+name: Cambio en zona protegida
+description: Necesito que se cambie algo que no puedo tocar (workflows, Firebase, componentes de shadcn, tema, dependencias…).
+labels: [zona-protegida]
+assignees: [aizetachan]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Estos archivos solo los cambia el lead. Cuéntale qué necesitas y por qué; no hagas el cambio tú (ni tu IA).
+  - type: textarea
+    attributes:
+      label: Qué necesito
+      placeholder: "Ej.: me falta el componente 'calendar' de shadcn para elegir la fecha en que encontré el objeto."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Para qué tarea o PR
+  - type: textarea
+    attributes:
+      label: Qué me ha dicho la IA (si aplica)
+      description: Si tu IA se ha parado y te ha explicado qué habría que cambiar, pégalo aquí.

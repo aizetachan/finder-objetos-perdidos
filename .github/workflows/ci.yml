@@ -1,0 +1,24 @@
+# Comprobaciones automáticas de cada PR: que el código esté bien escrito, que los tipos
+# cuadren y que la web compile. Si algo falla, la PR no se puede fusionar.
+name: Comprobaciones
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, tipos y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm check

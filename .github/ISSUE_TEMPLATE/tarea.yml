@@ -1,0 +1,25 @@
+name: Tarea
+description: Algo que hay que construir o cambiar.
+labels: [tarea]
+body:
+  - type: textarea
+    attributes:
+      label: Qué hay que hacer
+      description: Explícalo para que lo entienda alguien que no estaba en la conversación.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Funcionalidad
+      options:
+        - Buscador (features/search)
+        - Ficha y reclamación (features/item-detail)
+        - Publicar objeto (features/publish-item)
+        - Cuenta (features/account)
+        - Común / otra
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Cómo sabremos que está terminado
+      placeholder: "- Se puede filtrar por categoría\n- Si no hay resultados, se ve un mensaje"
