@@ -9,6 +9,7 @@
       "Edit(/functions/**)",
       "Edit(/AGENTS.md)",
       "Edit(/CLAUDE.md)",
+      "Edit(/GEMINI.md)",
       "Edit(/.claude/**)",
       "Edit(/apps/web/src/components/ui/**)",
       "Edit(/apps/web/src/index.css)",
