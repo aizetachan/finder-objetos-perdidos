@@ -14,6 +14,7 @@ import { paths } from '@/routes/paths'
 import { AccountMenu } from './account-menu'
 
 const navLinks = [
+  { to: paths.homeBorja, label: 'Home Borja' },
   { to: paths.items, label: 'Buscar objetos' },
   // Temporales (ver docs/DECISIONES.md):
   { to: paths.example, label: 'Ejemplo' },
