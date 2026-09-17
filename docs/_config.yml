@@ -1,0 +1,13 @@
+# Configuración de la web de documentación (GitHub Pages).
+title: Finder · Documentación
+description: Cómo trabajamos y cómo está construido Finder
+remote_theme: just-the-docs/just-the-docs@v0.10.1
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+aux_links:
+  "Repositorio en GitHub": https://github.com/aizetachan/finder-objetos-perdidos
+  "La web": https://finder-lost-found-app.web.app
+back_to_top: true
+back_to_top_text: Volver arriba
+footer_content: "Finder · documentación del equipo"
