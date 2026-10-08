@@ -215,4 +215,18 @@ export const services: Services = {
       }
     })
   },
+
+  async cancelClaim(claimId) {
+    await delay()
+    const user = requireUser()
+    updateDb((db) => {
+      const index = db.claims.findIndex((c) => c.id === claimId)
+      if (index === -1) throw new ServiceError('not-found', 'Esta reclamación ya no existe.')
+      const claim = db.claims[index]
+      if (claim.claimantId !== user.id) {
+        throw new ServiceError('not-allowed', 'Solo la persona que realizó la reclamación puede me cancelar.')
+      }
+      db.claims.splice(index, 1)
+    })
+  },
 }
