@@ -15,17 +15,17 @@ export interface SeedData {
 export const seed: SeedData = {
   accounts: [
     { id: 'user-lucia', email: 'lucia@example.com', displayName: 'Lucía Martín' },
-    { id: 'user-carlos', email: 'carlos@example.com', displayName: 'Carlos Ruiz' },
-    { id: 'user-aina', email: 'aina@example.com', displayName: 'Aina Ferrer' },
-    { id: 'user-mikel', email: 'mikel@example.com', displayName: 'Mikel Etxeberria' },
   ],
   users: [
     { id: 'user-lucia', displayName: 'Lucía Martín', city: 'Madrid', createdAt: '2026-08-01T09:00:00.000Z' },
     { id: 'user-carlos', displayName: 'Carlos Ruiz', city: 'Valencia', createdAt: '2026-08-03T09:00:00.000Z' },
     { id: 'user-aina', displayName: 'Aina Ferrer', city: 'Barcelona', createdAt: '2026-08-10T09:00:00.000Z' },
     { id: 'user-mikel', displayName: 'Mikel Etxeberria', city: 'Bilbao', createdAt: '2026-08-12T09:00:00.000Z' },
+    { id: 'user-elena', displayName: 'Elena Vega', city: 'Madrid', createdAt: '2026-08-15T09:00:00.000Z' },
+    { id: 'user-david', displayName: 'David Pastor', city: 'Sevilla', createdAt: '2026-08-18T09:00:00.000Z' },
   ],
   items: [
+    // 3 Objetos publicados por Lucía Martín (Mi usuario)
     {
       id: 'item-wallet',
       type: 'found',
@@ -65,15 +65,17 @@ export const seed: SeedData = {
       description: 'Encontrado en el suelo junto al andén de la estación de metro Colón. Incluye tres llaves de seguridad y una llave antigua dorada de aspecto histórico.',
       category: 'keys',
       photos: ['/items/keys.jpg'],
-      city: 'Valencia',
-      locationText: 'Parada de metro Colón, andén dirección aeropuerto',
+      city: 'Madrid',
+      locationText: 'Estación de metro Colón, andén línea 4',
       date: '2026-09-12T08:15:00.000Z',
       status: 'published',
-      createdBy: 'user-carlos',
-      createdByName: 'Carlos Ruiz',
+      createdBy: 'user-lucia',
+      createdByName: 'Lucía Martín',
       createdAt: '2026-09-12T09:00:00.000Z',
       updatedAt: '2026-09-12T09:00:00.000Z',
     },
+
+    // 7 Objetos publicados por otros miembros de la comunidad (Para que Lucía pueda reclamarlos)
     {
       id: 'item-watch',
       type: 'found',
@@ -133,8 +135,8 @@ export const seed: SeedData = {
       locationText: 'Tren Cercanías C-4, trayecto Atocha – Cantoblanco',
       date: '2026-09-16T10:30:00.000Z',
       status: 'published',
-      createdBy: 'user-lucia',
-      createdByName: 'Lucía Martín',
+      createdBy: 'user-elena',
+      createdByName: 'Elena Vega',
       createdAt: '2026-09-16T12:00:00.000Z',
       updatedAt: '2026-09-16T12:00:00.000Z',
     },
@@ -149,8 +151,8 @@ export const seed: SeedData = {
       locationText: 'Biblioteca Central de Deusto, 2ª planta sala de estudio',
       date: '2026-09-17T18:45:00.000Z',
       status: 'published',
-      createdBy: 'user-mikel',
-      createdByName: 'Mikel Etxeberria',
+      createdBy: 'user-david',
+      createdByName: 'David Pastor',
       createdAt: '2026-09-17T19:30:00.000Z',
       updatedAt: '2026-09-17T19:30:00.000Z',
     },
@@ -200,17 +202,31 @@ export const seed: SeedData = {
     'item-jacket': 'El bolsillo interior derecho conserva la entrada doblada de un museo de bellas artes de 2025 y un caramelo de menta sin abrir.',
   },
   claims: [
+    // 1. Reclamación RECIBIDA por Lucía (alguien de la comunidad reclama la Cartera que Lucía publicó)
     {
-      id: 'claim-wallet',
+      id: 'claim-wallet-incoming',
       itemId: 'item-wallet',
       itemTitle: 'Cartera marrón de piel artesanal',
       itemOwnerId: 'user-lucia',
-      claimantId: 'user-carlos',
-      claimantContact: { name: 'Carlos Ruiz', email: 'carlos@example.com' },
+      claimantId: 'user-mateo',
+      claimantContact: { name: 'Mateo Fernández', email: 'mateo.f@example.com' },
       ownerContact: { name: 'Lucía Martín', email: 'lucia@example.com' },
-      proof: 'En el forro llevo una foto antigua en blanco y negro de mis abuelos y una entrada de cine antigua.',
+      proof: 'En el bolsillo secreto del forro llevo una foto en blanco y negro de mis abuelos y una entrada antigua de cine.',
       status: 'pending',
       createdAt: '2026-09-16T12:00:00.000Z',
+    },
+    // 2. Reclamación ENVIADA por Lucía (Lucía reclama el Reloj que publicó Carlos Ruiz)
+    {
+      id: 'claim-watch-outgoing',
+      itemId: 'item-watch',
+      itemTitle: 'Reloj de pulsera con correa de cuero',
+      itemOwnerId: 'user-carlos',
+      claimantId: 'user-lucia',
+      claimantContact: { name: 'Lucía Martín', email: 'lucia@example.com' },
+      ownerContact: { name: 'Carlos Ruiz', email: 'carlos@example.com' },
+      proof: 'Por la parte trasera del reloj tiene grabado "25 años juntos" y un rasguño fino cerca de la corona.',
+      status: 'pending',
+      createdAt: '2026-09-17T14:30:00.000Z',
     },
   ],
 }
