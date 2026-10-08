@@ -2,6 +2,7 @@
 // `paths.algo`, nunca el texto de la URL escrito a mano.
 export const paths = {
   home: '/',
+  homeBorja: '/home-borja',
   items: '/objetos',
   itemDetail: (id: string) => `/objetos/${id}`,
   itemClaim: (id: string) => `/objetos/${id}/reclamar`,
