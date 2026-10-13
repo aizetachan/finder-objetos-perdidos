@@ -11,6 +11,7 @@ import { ClaimItemPage } from '@/features/item-detail/claim-item-page'
 import { ItemDetailPage } from '@/features/item-detail/item-detail-page'
 import { PublishItemPage } from '@/features/publish-item/publish-item-page'
 import { HomePage } from '@/features/search/home-page'
+import { BorjaHomePage } from '@/features/search/borja-home-page'
 import { SearchPage } from '@/features/search/search-page'
 import { StyleguidePage } from '@/features/styleguide/styleguide-page'
 import { ErrorPage } from './error-page'
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { path: paths.home, element: <HomePage /> },
+      { path: paths.homeBorja, element: <BorjaHomePage /> },
       { path: paths.items, element: <SearchPage /> },
       { path: paths.itemDetail(':id'), element: <ItemDetailPage /> },
       { path: paths.itemClaim(':id'), element: <RequireAuth><ClaimItemPage /></RequireAuth> },
