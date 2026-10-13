@@ -1,4 +1,4 @@
-import { CATEGORIES, type CategoryId } from '@finder/shared'
+import { CATEGORIES, type CategoryId, type DateFilterPeriod } from '@finder/shared'
 import { SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +21,18 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { cn } from 'cn'
-import { ALL_OPTION, POPULAR_CITIES } from './constants'
+import { ALL_OPTION, DATE_PERIOD_OPTIONS } from './constants'
 
 interface SearchFiltersSheetProps {
   category?: CategoryId
   city?: string
-  onApply: (filters: { category?: CategoryId; city?: string }) => void
+  period?: DateFilterPeriod
+  availableCities: string[]
+  onApply: (filters: {
+    category?: CategoryId
+    city?: string
+    period?: DateFilterPeriod
+  }) => void
   onReset: () => void
   triggerClassName?: string
 }
@@ -34,6 +40,8 @@ interface SearchFiltersSheetProps {
 export function SearchFiltersSheet({
   category,
   city,
+  period,
+  availableCities,
   onApply,
   onReset,
   triggerClassName,
@@ -41,11 +49,13 @@ export function SearchFiltersSheet({
   const [open, setOpen] = useState(false)
   const [tempCategory, setTempCategory] = useState<CategoryId | typeof ALL_OPTION>(category ?? ALL_OPTION)
   const [tempCity, setTempCity] = useState<string | typeof ALL_OPTION>(city ?? ALL_OPTION)
+  const [tempPeriod, setTempPeriod] = useState<DateFilterPeriod | typeof ALL_OPTION>(period ?? ALL_OPTION)
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
       setTempCategory(category ?? ALL_OPTION)
       setTempCity(city ?? ALL_OPTION)
+      setTempPeriod(period ?? ALL_OPTION)
     }
     setOpen(nextOpen)
   }
@@ -54,6 +64,7 @@ export function SearchFiltersSheet({
     onApply({
       category: tempCategory === ALL_OPTION ? undefined : tempCategory,
       city: tempCity === ALL_OPTION ? undefined : tempCity,
+      period: tempPeriod === ALL_OPTION ? undefined : tempPeriod,
     })
     setOpen(false)
   }
@@ -61,11 +72,12 @@ export function SearchFiltersSheet({
   function handleReset() {
     setTempCategory(ALL_OPTION)
     setTempCity(ALL_OPTION)
+    setTempPeriod(ALL_OPTION)
     onReset()
     setOpen(false)
   }
 
-  const activeCount = (category ? 1 : 0) + (city ? 1 : 0)
+  const activeCount = (category ? 1 : 0) + (city ? 1 : 0) + (period ? 1 : 0)
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -121,9 +133,28 @@ export function SearchFiltersSheet({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_OPTION}>Todas las ciudades</SelectItem>
-                {POPULAR_CITIES.map((cityName) => (
+                {availableCities.map((cityName) => (
                   <SelectItem key={cityName} value={cityName}>
                     {cityName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="filter-period">Fecha de hallazgo</FieldLabel>
+            <Select
+              value={tempPeriod}
+              onValueChange={(val) => setTempPeriod(val as DateFilterPeriod | typeof ALL_OPTION)}
+            >
+              <SelectTrigger id="filter-period" className="w-full">
+                <SelectValue placeholder="Cualquier fecha" />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_PERIOD_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
