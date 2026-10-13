@@ -44,8 +44,11 @@ export interface NewItemInput {
 }
 
 // Filtros del buscador. Todos son opcionales.
+export type DateFilterPeriod = '24h' | '7d' | '30d'
+
 export interface ItemFilters {
   query?: string
   category?: CategoryId
   city?: string
+  datePeriod?: DateFilterPeriod
 }
