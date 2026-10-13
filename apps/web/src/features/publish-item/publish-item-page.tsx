@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils'
 import { StepLocationDate, type StepLocationDateData } from './step-location-date'
 import { StepPhotoAi, type StepPhotoAiData } from './step-photo-ai'
+import { StepSecurityLogistics, type StepSecurityLogisticsData } from './step-security-logistics'
 
 interface WizardStep {
   number: number
@@ -23,6 +24,7 @@ export function PublishItemPage() {
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [step1Data, setStep1Data] = useState<StepPhotoAiData | null>(null)
   const [step2Data, setStep2Data] = useState<StepLocationDateData | null>(null)
+  const [step3Data, setStep3Data] = useState<StepSecurityLogisticsData | null>(null)
 
   function handleStep1Continue(data: StepPhotoAiData) {
     setStep1Data(data)
@@ -39,6 +41,18 @@ export function PublishItemPage() {
   function handleStep2Continue(data: StepLocationDateData) {
     setStep2Data(data)
     setCurrentStep(3)
+  }
+
+  function handleStep3Back(currentValues?: Partial<StepSecurityLogisticsData>) {
+    if (currentValues) {
+      setStep3Data((prev) => ({ ...prev, ...currentValues } as StepSecurityLogisticsData))
+    }
+    setCurrentStep(2)
+  }
+
+  function handleStep3Continue(data: StepSecurityLogisticsData) {
+    setStep3Data(data)
+    setCurrentStep(4)
   }
 
   return (
@@ -105,47 +119,39 @@ export function PublishItemPage() {
         ) : null}
 
         {currentStep === 3 ? (
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Paso 3: Seguridad</CardTitle>
-              <CardDescription>
-                Detalles ocultos para verificar la pertenencia.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-                Este paso se maquetará en el siguiente bloque.
-                {step2Data ? (
-                  <div className="mt-3 text-xs font-medium text-foreground">
-                    Ubicación registrada: {step2Data.city} ({step2Data.locationText}) · Fecha: {step2Data.date}
-                  </div>
-                ) : null}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentStep(2)}
-                className="gap-2"
-              >
-                <ArrowLeft className="size-4" />
-                Volver al Paso 2
-              </Button>
-            </CardContent>
-          </Card>
+          <StepSecurityLogistics
+            initialData={step3Data ?? undefined}
+            onBack={handleStep3Back}
+            onContinue={handleStep3Continue}
+          />
         ) : null}
 
         {currentStep === 4 ? (
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Paso 4: Revisar</CardTitle>
+              <CardTitle>Paso 4: Revisar y confirmar</CardTitle>
               <CardDescription>
-                Revisión final y publicación del objeto.
+                Revisión final de los datos antes de publicar el objeto.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-                Este paso se maquetará en el siguiente bloque.
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 space-y-2 text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground">Resumen de datos recopilados:</p>
+                {step1Data ? (
+                  <p className="text-xs">
+                    <strong className="text-foreground">Objeto:</strong> {step1Data.title} ({step1Data.category})
+                  </p>
+                ) : null}
+                {step2Data ? (
+                  <p className="text-xs">
+                    <strong className="text-foreground">Ubicación:</strong> {step2Data.city} · {step2Data.locationText} · {step2Data.foundDate ?? step2Data.date}
+                  </p>
+                ) : null}
+                {step3Data ? (
+                  <p className="text-xs">
+                    <strong className="text-foreground">Seguridad:</strong> {step3Data.hiddenDetails.slice(0, 30)}... · Método: {step3Data.deliveryMethod}
+                  </p>
+                ) : null}
               </div>
               <Button
                 type="button"

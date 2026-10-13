@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import sampleKeysPhoto from './sample-keys.jpg'
 
 export interface StepPhotoAiData {
   photoUrl: string
@@ -50,11 +51,10 @@ const SAMPLE_SCENARIOS: SampleScenario[] = [
   {
     id: 'keys',
     label: '🔑 Llavero',
-    photoUrl:
-      'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=800&q=80',
+    photoUrl: sampleKeysPhoto,
     title: 'Llavero con 3 llaves y anilla metálica',
     category: 'keys',
-    description: 'Juego de llaves con anilla plateada y una cinta identificativa.',
+    description: 'Juego de llaves con anilla metálica y llavero de cuero con candado.',
   },
   {
     id: 'wallet',
