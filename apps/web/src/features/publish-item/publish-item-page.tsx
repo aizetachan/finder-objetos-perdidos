@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { StepLocationDate, type StepLocationDateData } from './step-location-date'
 import { StepPhotoAi, type StepPhotoAiData } from './step-photo-ai'
 
 interface WizardStep {
@@ -21,10 +22,23 @@ const WIZARD_STEPS: WizardStep[] = [
 export function PublishItemPage() {
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [step1Data, setStep1Data] = useState<StepPhotoAiData | null>(null)
+  const [step2Data, setStep2Data] = useState<StepLocationDateData | null>(null)
 
   function handleStep1Continue(data: StepPhotoAiData) {
     setStep1Data(data)
     setCurrentStep(2)
+  }
+
+  function handleStep2Back(currentValues?: Partial<StepLocationDateData>) {
+    if (currentValues) {
+      setStep2Data((prev) => ({ ...prev, ...currentValues } as StepLocationDateData))
+    }
+    setCurrentStep(1)
+  }
+
+  function handleStep2Continue(data: StepLocationDateData) {
+    setStep2Data(data)
+    setCurrentStep(3)
   }
 
   return (
@@ -83,34 +97,11 @@ export function PublishItemPage() {
         ) : null}
 
         {currentStep === 2 ? (
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Paso 2: Ubicación</CardTitle>
-              <CardDescription>
-                Define la ciudad y el punto aproximado donde encontraste el objeto.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-                Este paso se maquetará en el siguiente bloque.
-                {step1Data ? (
-                  <div className="mt-3 text-xs font-medium text-foreground">
-                    Datos recibidos del Paso 1: &quot;{step1Data.title}&quot; ({step1Data.category})
-                  </div>
-                ) : null}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentStep(1)}
-                className="gap-2"
-              >
-                <ArrowLeft className="size-4" />
-                Volver al Paso 1
-              </Button>
-            </CardContent>
-          </Card>
+          <StepLocationDate
+            initialData={step2Data ?? undefined}
+            onBack={handleStep2Back}
+            onContinue={handleStep2Continue}
+          />
         ) : null}
 
         {currentStep === 3 ? (
@@ -124,6 +115,11 @@ export function PublishItemPage() {
             <CardContent className="space-y-4">
               <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                 Este paso se maquetará en el siguiente bloque.
+                {step2Data ? (
+                  <div className="mt-3 text-xs font-medium text-foreground">
+                    Ubicación registrada: {step2Data.city} ({step2Data.locationText}) · Fecha: {step2Data.date}
+                  </div>
+                ) : null}
               </div>
               <Button
                 type="button"

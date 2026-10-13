@@ -28,14 +28,44 @@ interface StepPhotoAiProps {
   onContinue?: (data: StepPhotoAiData) => void
 }
 
-const SAMPLE_PHOTO =
-  'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80'
-
-const SAMPLE_DATA = {
-  title: 'Auriculares inalámbricos negros en estuche',
-  category: 'electronics' as CategoryId,
-  description: 'Encontrados en un banco, estuche negro con ligeras marcas de uso.',
+interface SampleScenario {
+  id: string
+  label: string
+  photoUrl: string
+  title: string
+  category: CategoryId
+  description: string
 }
+
+const SAMPLE_SCENARIOS: SampleScenario[] = [
+  {
+    id: 'headphones',
+    label: '🎧 Auriculares',
+    photoUrl:
+      'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=800&q=80',
+    title: 'Auriculares inalámbricos en estuche',
+    category: 'electronics',
+    description: 'Encontrados en un banco, estuche negro con ligeras marcas de uso.',
+  },
+  {
+    id: 'keys',
+    label: '🔑 Llavero',
+    photoUrl:
+      'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=800&q=80',
+    title: 'Llavero con 3 llaves y anilla metálica',
+    category: 'keys',
+    description: 'Juego de llaves con anilla plateada y una cinta identificativa.',
+  },
+  {
+    id: 'wallet',
+    label: '👛 Cartera',
+    photoUrl:
+      'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80',
+    title: 'Cartera de mano de piel negra',
+    category: 'wallets-bags',
+    description: 'Cartera de mano de cuero oscuro con cremallera, bien cuidada.',
+  },
+]
 
 export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -48,22 +78,18 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
   const [category, setCategory] = useState<CategoryId | ''>(initialData?.category ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
 
-  function simulateAiDetection(imageUrl: string) {
+  function simulateScenarioDetection(scenario: SampleScenario) {
     setIsAnalyzing(true)
     setHasData(false)
 
     setTimeout(() => {
-      setPhotoUrl(imageUrl)
-      setTitle(SAMPLE_DATA.title)
-      setCategory(SAMPLE_DATA.category)
-      setDescription(SAMPLE_DATA.description)
+      setPhotoUrl(scenario.photoUrl)
+      setTitle(scenario.title)
+      setCategory(scenario.category)
+      setDescription(scenario.description)
       setIsAnalyzing(false)
       setHasData(true)
-    }, 1500)
-  }
-
-  function handleLoadSample() {
-    simulateAiDetection(SAMPLE_PHOTO)
+    }, 1200)
   }
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -71,7 +97,24 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
     if (!file) return
 
     const localUrl = URL.createObjectURL(file)
-    simulateAiDetection(localUrl)
+    setIsAnalyzing(true)
+    setHasData(false)
+
+    setTimeout(() => {
+      setPhotoUrl(localUrl)
+      const rawName = file.name.replace(/\.[^/.]+$/, '').trim()
+      const cleanTitle =
+        rawName.length > 2
+          ? rawName.charAt(0).toUpperCase() + rawName.slice(1)
+          : 'Objeto detectado en fotografía'
+      setTitle(cleanTitle)
+      setCategory('other')
+      setDescription(
+        'Objeto identificado a partir de la fotografía cargada. Revisa los detalles para asegurar la precisión.'
+      )
+      setIsAnalyzing(false)
+      setHasData(true)
+    }, 1200)
   }
 
   function handleReset() {
@@ -95,7 +138,8 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
     })
   }
 
-  const isComplete = hasData && !isAnalyzing && Boolean(photoUrl) && title.trim().length > 0 && category !== ''
+  const isComplete =
+    hasData && !isAnalyzing && Boolean(photoUrl) && title.trim().length > 0 && category !== ''
 
   return (
     <Card className="w-full">
@@ -148,12 +192,33 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleLoadSample}
+                onClick={() => fileInputRef.current?.click()}
                 className="gap-2"
               >
                 <Upload className="size-3.5" />
                 Subir fotos del objeto
               </Button>
+            </div>
+
+            {/* Píldoras de escenarios de prueba rápida */}
+            <div className="flex flex-col items-center gap-2 pt-2 text-center">
+              <span className="text-xs text-muted-foreground">
+                O prueba con un escenario de ejemplo:
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {SAMPLE_SCENARIOS.map((scenario) => (
+                  <Button
+                    key={scenario.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => simulateScenarioDetection(scenario)}
+                    className="h-8 rounded-full px-3 text-xs gap-1.5 transition-colors hover:border-primary/50 hover:bg-primary/5"
+                  >
+                    {scenario.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             <input
@@ -213,8 +278,7 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
                     src={photoUrl}
                     alt="Foto del objeto encontrado"
                     onError={(e) => {
-                      // Fallback offline a SVG de placeholder si falla la URL externa
-                      e.currentTarget.src = placeholderPhoto('Auriculares')
+                      e.currentTarget.src = placeholderPhoto(title || 'Objeto')
                     }}
                     className="h-full w-full object-cover"
                   />
@@ -247,7 +311,7 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
               </div>
             </div>
 
-            {/* Campos del formulario completados */}
+            {/* Campos del formulario completados y editables */}
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="item-title">Título</FieldLabel>
