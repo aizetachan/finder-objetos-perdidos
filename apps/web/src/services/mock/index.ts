@@ -71,10 +71,23 @@ export const services: Services = {
   async getItems(filters = {}) {
     await delay()
     const query = filters.query ? normalize(filters.query) : ''
+    const now = Date.now()
+    const periodMs: Record<string, number> = {
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
+    }
+    const maxAge = filters.datePeriod ? periodMs[filters.datePeriod] : null
+
     return loadDb()
       .items.filter((item) => item.type === 'found' && item.status === 'published')
       .filter((item) => !filters.category || item.category === filters.category)
       .filter((item) => !filters.city || normalize(item.city) === normalize(filters.city))
+      .filter((item) => {
+        if (!maxAge) return true
+        const itemTime = new Date(item.date).getTime()
+        return !isNaN(itemTime) && now - itemTime <= maxAge && itemTime <= now + 60000
+      })
       .filter(
         (item) =>
           !query ||
