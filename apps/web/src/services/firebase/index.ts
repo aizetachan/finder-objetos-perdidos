@@ -133,7 +133,23 @@ export const services: Services = {
     constraints.push(orderBy('createdAt', 'desc'))
 
     const snapshot = await getDocs(query(collection(db, 'items'), ...constraints))
-    const items = snapshot.docs.map((d) => d.data() as Item)
+    let items = snapshot.docs.map((d) => d.data() as Item)
+
+    if (filters.datePeriod) {
+      const now = Date.now()
+      const periodMs: Record<string, number> = {
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+      }
+      const maxAge = periodMs[filters.datePeriod]
+      if (maxAge) {
+        items = items.filter((item) => {
+          const itemTime = new Date(item.date).getTime()
+          return !isNaN(itemTime) && now - itemTime <= maxAge
+        })
+      }
+    }
 
     // Firestore no sabe buscar texto libre: se filtra aquí. Suficiente mientras haya pocos
     // objetos; cuando crezca habrá que usar un buscador externo (ver docs/DECISIONES.md).

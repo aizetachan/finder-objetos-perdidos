@@ -43,7 +43,7 @@ export function ItemDetailPage() {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver al feed de objetos
+          Volver a los resultados
         </Link>
       </div>
 
@@ -109,11 +109,17 @@ export function ItemDetailPage() {
           {/* Columna Izquierda: Galería de Foto del Producto */}
           <div className="space-y-4 md:col-span-6 lg:col-span-7">
             <div className="relative aspect-4/3 overflow-hidden rounded-2xl border bg-muted shadow-sm">
-              <img
-                src={item.photos[0]}
-                alt={item.title}
-                className="h-full w-full object-cover"
-              />
+              {item.photos[0] ? (
+                <img
+                  src={item.photos[0]}
+                  alt={item.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <PackageSearch className="h-16 w-16 text-muted-foreground" />
+                </div>
+              )}
               <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                 <Badge
                   variant={item.type === 'found' ? 'default' : 'secondary'}
@@ -128,7 +134,7 @@ export function ItemDetailPage() {
 
               {item.status === 'returned' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-xs">
-                  <Badge className="bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg">
+                  <Badge className="px-4 py-2 text-sm shadow-lg">
                     <CheckCircle2 className="mr-2 h-5 w-5" />
                     Devuelto con éxito a su dueño
                   </Badge>
@@ -171,7 +177,9 @@ export function ItemDetailPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5 text-primary" />
-                    <span>Encontrado el {formatDate(item.date)}</span>
+                    <span>
+                      {item.type === 'found' ? 'Encontrado' : 'Perdido'} el {formatDate(item.date)}
+                    </span>
                   </div>
                 </div>
               </div>

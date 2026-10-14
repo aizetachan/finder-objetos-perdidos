@@ -175,7 +175,7 @@ export function ProfilePage() {
 
             <div className="space-y-1 rounded-lg border p-3">
               <span className="text-xs font-medium text-muted-foreground">Estado de la cuenta</span>
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-primary">
                 <CheckCircle2 className="h-4 w-4" />
                 Activa y en buen estado
               </div>

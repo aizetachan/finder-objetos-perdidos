@@ -229,13 +229,13 @@ export function MyItemsPage() {
                       </div>
 
                       {claim.status === 'pending' && (
-                        <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                        <Badge variant="secondary">
                           <Clock className="mr-1 h-3.5 w-3.5" />
                           Pendiente de tu revisión
                         </Badge>
                       )}
                       {claim.status === 'accepted' && (
-                        <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
+                        <Badge variant="default">
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                           Aceptada por ti
                         </Badge>
@@ -282,7 +282,7 @@ export function MyItemsPage() {
                           size="sm"
                           disabled={resolveClaimMutation.isPending}
                           onClick={() => handleResolve(claim.id, 'accepted')}
-                          className="bg-emerald-600 hover:bg-emerald-700 font-semibold"
+                          className="font-semibold"
                         >
                           <CheckCircle2 className="mr-1.5 h-4 w-4" />
                           Aceptar y confirmar propiedad

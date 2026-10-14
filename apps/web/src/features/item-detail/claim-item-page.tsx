@@ -7,7 +7,7 @@ import {
   RotateCcw,
   ShieldCheck,
 } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -22,7 +22,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Label } from '@/components/ui/label'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { paths } from '@/routes/paths'
@@ -42,11 +42,7 @@ export function ClaimItemPage() {
   const navigate = useNavigate()
   const { data: item, isLoading, isError, error, refetch } = useItemDetail(id)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ClaimFormValues>({
+  const form = useForm<ClaimFormValues>({
     resolver: zodResolver(claimSchema),
     defaultValues: { proof: '' },
   })
@@ -58,7 +54,7 @@ export function ClaimItemPage() {
         proof: values.proof,
       })
       toast.success('¡Reclamación enviada con éxito!', {
-        description: 'La persona que encontró el objeto revisará tu detalle para confirmar tu propiedad.',
+        description: 'Quien encontró el objeto revisará tu detalle para confirmar tu propiedad.',
       })
       navigate(paths.myClaims)
     } catch (err) {
@@ -115,7 +111,7 @@ export function ClaimItemPage() {
             <EmptyDescription>El objeto que intentas reclamar no existe.</EmptyDescription>
           </EmptyHeader>
           <Button asChild variant="outline" className="mt-4 gap-2">
-            <Link to={paths.items}>Volver al feed</Link>
+            <Link to={paths.items}>Volver a los resultados</Link>
           </Button>
         </Empty>
       )}
@@ -149,22 +145,24 @@ export function ClaimItemPage() {
             </CardHeader>
 
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="proof" className="text-sm font-semibold">
-                    Descripción del detalle privado o prueba
-                  </Label>
-                  <Textarea
-                    id="proof"
-                    placeholder="Ejemplo: En el Bolsillo interior hay una pegatina de un gato y las iniciales 'A.M.' en la correa..."
-                    rows={5}
-                    {...register('proof')}
-                    className={errors.proof ? 'border-destructive focus-visible:ring-destructive' : ''}
-                  />
-                  {errors.proof && (
-                    <p className="text-xs font-medium text-destructive">{errors.proof.message}</p>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Controller
+                  name="proof"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="proof">Descripción del detalle privado o prueba</FieldLabel>
+                      <Textarea
+                        {...field}
+                        id="proof"
+                        rows={5}
+                        aria-invalid={fieldState.invalid}
+                        placeholder="Ejemplo: en el bolsillo interior hay una pegatina de un gato y las iniciales «A.M.» en la correa…"
+                      />
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
-                </div>
+                />
 
                 <div className="rounded-xl border bg-muted/50 p-4 text-xs text-muted-foreground space-y-1">
                   <div className="flex items-center gap-1.5 font-medium text-foreground">
@@ -172,7 +170,7 @@ export function ClaimItemPage() {
                     ¿Cómo funciona este proceso?
                   </div>
                   <p>
-                    Tus datos de contacto serán compartidos únicamente con {item.createdByName}. Si tu respuesta coincide con el detalle oculto que él registró, aceptará la reclamación y se pondrá en contacto contigo para acordar la entrega.
+                    Tus datos de contacto serán compartidos únicamente con {item.createdByName}. Si tu respuesta coincide con el detalle oculto que registró al publicarlo, aceptará la reclamación y se pondrá en contacto contigo para acordar la entrega.
                   </p>
                 </div>
 
@@ -180,9 +178,9 @@ export function ClaimItemPage() {
                   <Button asChild variant="outline" type="button">
                     <Link to={paths.itemDetail(id)}>Cancelar</Link>
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="gap-2 font-semibold">
+                  <Button type="submit" disabled={form.formState.isSubmitting} className="gap-2 font-semibold">
                     <Handshake className="h-4 w-4" />
-                    {isSubmitting ? 'Enviando...' : 'Enviar reclamación'}
+                    {form.formState.isSubmitting ? 'Enviando…' : 'Enviar reclamación'}
                   </Button>
                 </div>
               </form>

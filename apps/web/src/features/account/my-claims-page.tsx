@@ -117,13 +117,13 @@ export function MyClaimsPage() {
                   </CardTitle>
 
                   {claim.status === 'pending' && (
-                    <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                    <Badge variant="secondary">
                       <Clock className="mr-1 h-3.5 w-3.5" />
                       En revisión por el publicador
                     </Badge>
                   )}
                   {claim.status === 'accepted' && (
-                    <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
+                    <Badge variant="default">
                       <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                       Reclamación Aceptada
                     </Badge>

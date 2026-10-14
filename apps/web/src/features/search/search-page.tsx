@@ -1,19 +1,13 @@
-import { CATEGORIES, type CategoryId } from '@finder/shared'
-import {
-  FilterX,
-  MapPin,
-  PackageSearch,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-  X,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { CATEGORIES, type CategoryId, type DateFilterPeriod, getCategoryLabel } from '@finder/shared'
+import { PackageSearch, RotateCcw, Search, TriangleAlert, X } from 'lucide-react'
+import { type FormEvent, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -28,341 +22,439 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ItemCard } from './item-card'
+import { ALL_OPTION, DATE_PERIOD_OPTIONS } from './constants'
+import { SearchFiltersSheet } from './search-filters-sheet'
+import { SearchItemCard } from './search-item-card'
 import { useSearchItems } from './use-search-items'
 
-const ALL_CATEGORIES = 'all'
-const ALL_CITIES = 'all'
-
-type SortOption = 'newest' | 'oldest' | 'title'
-
 export function SearchPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>(ALL_CATEGORIES)
-  const [selectedCity, setSelectedCity] = useState<string>(ALL_CITIES)
-  const [typeFilter, setTypeFilter] = useState<'all' | 'found' | 'lost'>('all')
-  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Preparamos los filtros para el hook useSearchItems
-  const apiFilters = useMemo(() => {
-    return {
-      query: searchQuery.trim() || undefined,
-      category: selectedCategory !== ALL_CATEGORIES ? (selectedCategory as CategoryId) : undefined,
-      city: selectedCity !== ALL_CITIES ? selectedCity : undefined,
-    }
-  }, [searchQuery, selectedCategory, selectedCity])
+  // 1. Lectura y validación defensiva de los search params de la URL
+  const rawQ = searchParams.get('q') ?? ''
+  const q = rawQ.trim()
 
-  const { data: items, isLoading, isError, error, refetch } = useSearchItems(apiFilters)
+  const rawCategory = searchParams.get('category')
+  const category = rawCategory && CATEGORIES.some((c) => c.id === rawCategory)
+    ? (rawCategory as CategoryId)
+    : undefined
 
-  // Filtrado local adicional (por tipo si aplica) y ordenación
-  const filteredItems = useMemo(() => {
-    if (!items) return []
-    let result = [...items]
+  const rawCity = searchParams.get('city')?.trim()
+  const city = rawCity && rawCity !== ALL_OPTION ? rawCity : undefined
 
-    if (typeFilter !== 'all') {
-      result = result.filter((item) => item.type === typeFilter)
-    }
+  const rawPeriod = searchParams.get('period')
+  const period =
+    rawPeriod === '24h' || rawPeriod === '7d' || rawPeriod === '30d'
+      ? (rawPeriod as DateFilterPeriod)
+      : undefined
 
-    result.sort((a, b) => {
-      if (sortBy === 'newest') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      }
-      if (sortBy === 'oldest') {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      }
-      if (sortBy === 'title') {
-        return a.title.localeCompare(b.title)
-      }
-      return 0
-    })
+  // 2. Estado local del input sincronizado con la URL (ajuste durante render para back/forward)
+  const [prevQ, setPrevQ] = useState(rawQ)
+  const [searchInput, setSearchInput] = useState(rawQ)
 
-    return result
-  }, [items, typeFilter, sortBy])
-
-  // Obtener la lista única de ciudades a partir de los datos cargados o mock
-  const availableCities = useMemo(() => {
-    if (!items) return []
-    const citiesSet = new Set(items.map((item) => item.city).filter(Boolean))
-    return Array.from(citiesSet).sort()
-  }, [items])
-
-  const hasActiveFilters =
-    searchQuery.trim() !== '' ||
-    selectedCategory !== ALL_CATEGORIES ||
-    selectedCity !== ALL_CITIES ||
-    typeFilter !== 'all'
-
-  const clearAllFilters = () => {
-    setSearchQuery('')
-    setSelectedCategory(ALL_CATEGORIES)
-    setSelectedCity(ALL_CITIES)
-    setTypeFilter('all')
-    setSortBy('newest')
+  if (prevQ !== rawQ) {
+    setPrevQ(rawQ)
+    setSearchInput(rawQ)
   }
 
+  // 3. Obtener ciudades disponibles a través del contrato de services
+  const allItemsQuery = useSearchItems()
+  const availableCities = useMemo(() => {
+    if (!allItemsQuery.data) return []
+    const set = new Set<string>()
+    for (const item of allItemsQuery.data) {
+      const c = item.city?.trim()
+      if (c) set.add(c)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'))
+  }, [allItemsQuery.data])
+
+  // 4. Filtros para la consulta activa
+  const activeFilters = useMemo(
+    () => ({
+      query: q || undefined,
+      category,
+      city,
+      datePeriod: period,
+    }),
+    [q, category, city, period],
+  )
+
+  const itemsQuery = useSearchItems(activeFilters)
+  const items = itemsQuery.data ?? []
+  const count = items.length
+
+  // 5. Manejadores de URL
+  function updateSearchParams(updates: {
+    q?: string
+    category?: CategoryId | typeof ALL_OPTION
+    city?: string | typeof ALL_OPTION
+    period?: DateFilterPeriod | typeof ALL_OPTION
+  }) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+
+      if ('q' in updates) {
+        const val = updates.q?.trim()
+        if (val) next.set('q', val)
+        else next.delete('q')
+      }
+
+      if ('category' in updates) {
+        const val = updates.category
+        if (val && val !== ALL_OPTION) next.set('category', val)
+        else next.delete('category')
+      }
+
+      if ('city' in updates) {
+        const val = updates.city
+        if (val && val !== ALL_OPTION) next.set('city', val)
+        else next.delete('city')
+      }
+
+      if ('period' in updates) {
+        const val = updates.period
+        if (val && val !== ALL_OPTION) next.set('period', val)
+        else next.delete('period')
+      }
+
+      return next
+    })
+  }
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    updateSearchParams({ q: searchInput })
+  }
+
+  function handleClearSearchInput() {
+    setSearchInput('')
+    updateSearchParams({ q: '' })
+  }
+
+  function handleResetAll() {
+    setSearchInput('')
+    setSearchParams(new URLSearchParams())
+  }
+
+  function removeFilter(key: 'q' | 'category' | 'city' | 'period') {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete(key)
+      return next
+    })
+    if (key === 'q') {
+      setSearchInput('')
+    }
+  }
+
+  const hasActiveFilters = Boolean(q || category || city || period)
+  const currentPeriodLabel = DATE_PERIOD_OPTIONS.find((p) => p.value === period)?.label
+
   return (
-    <div className="mx-auto max-w-6xl space-y-8 py-6">
-      {/* Cabecera principal */}
-      <div className="space-y-2 text-center md:text-left">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Feed de objetos perdidos y encontrados
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Explora todas las publicaciones de la comunidad o busca lo que has perdido.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8 py-4">
+      {/* A. CABECERA */}
+      <section className="space-y-2">
+        <h1 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">
+          Buscar objetos
+        </h1>
+        <p className="text-base text-muted-foreground">
+          Busca entre los objetos encontrados y publicados por la comunidad.
+        </p>
+      </section>
 
-      {/* Panel de filtros y búsqueda */}
-      <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm sm:p-6">
-        {/* Fila 1: Buscador y selección de tipo */}
-        <div className="grid gap-3 sm:grid-cols-12">
-          {/* Campo de búsqueda */}
-          <div className="relative sm:col-span-8 md:col-span-9">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      {/* B. BUSCADOR PRINCIPAL Y FILTROS */}
+      <section className="space-y-4">
+        {/* Formulario de búsqueda principal */}
+        <form onSubmit={handleSearchSubmit} className="flex gap-2" role="search">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              type="text"
-              placeholder="Buscar por nombre, descripción o ubicación..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9"
+              name="q"
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="¿Qué has perdido? Cartera, llaves, mochila…"
+              aria-label="¿Qué has perdido?"
+              className="h-11 pl-10 pr-9 text-base md:text-sm"
             />
-            {searchQuery && (
+            {searchInput ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Limpiar búsqueda"
+                onClick={handleClearSearchInput}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Borrar texto de búsqueda"
               >
-                <X className="h-4 w-4" />
+                <X className="size-3.5" />
               </button>
-            )}
+            ) : null}
           </div>
 
-          {/* Selector de Tipo (Todos / Encontrados / Perdidos) */}
-          <div className="sm:col-span-4 md:col-span-3">
-            <div className="flex rounded-lg border bg-muted p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setTypeFilter('all')}
-                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
-                  typeFilter === 'all'
-                    ? 'bg-background text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeFilter('found')}
-                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
-                  typeFilter === 'found'
-                    ? 'bg-background text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Encontrados
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeFilter('lost')}
-                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
-                  typeFilter === 'lost'
-                    ? 'bg-background text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Perdidos
-              </button>
-            </div>
+          <Button type="submit" size="lg" className="h-11 px-5">
+            <Search data-icon="inline-start" className="md:hidden" />
+            <span className="hidden md:inline">Buscar</span>
+          </Button>
+
+          {/* Botón de filtros en móvil */}
+          <div className="md:hidden">
+            <SearchFiltersSheet
+              category={category}
+              city={city}
+              period={period}
+              availableCities={availableCities}
+              onApply={(sheetFilters) => {
+                updateSearchParams({
+                  category: sheetFilters.category ?? ALL_OPTION,
+                  city: sheetFilters.city ?? ALL_OPTION,
+                  period: sheetFilters.period ?? ALL_OPTION,
+                })
+              }}
+              onReset={() => {
+                updateSearchParams({
+                  category: ALL_OPTION,
+                  city: ALL_OPTION,
+                  period: ALL_OPTION,
+                })
+              }}
+              triggerClassName="h-11"
+            />
           </div>
+        </form>
+
+        {/* C. CATEGORÍAS (Pills visualmente coherentes con la Home) */}
+        <div
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-none"
+          role="tablist"
+          aria-label="Filtro por categoría"
+        >
+          <Button
+            type="button"
+            variant={!category ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => updateSearchParams({ category: ALL_OPTION })}
+            className="rounded-full shrink-0"
+          >
+            Todas
+          </Button>
+          {CATEGORIES.map((cat) => (
+            <Button
+              key={cat.id}
+              type="button"
+              variant={category === cat.id ? 'default' : 'outline'}
+              size="sm"
+              onClick={() =>
+                updateSearchParams({
+                  category: category === cat.id ? ALL_OPTION : cat.id,
+                })
+              }
+              className="rounded-full shrink-0"
+            >
+              {cat.label}
+            </Button>
+          ))}
         </div>
 
-        {/* Fila 2: Categoría, Ciudad y Ordenación */}
-        <div className="grid gap-3 sm:grid-cols-12">
-          {/* Desplegable Categoría */}
-          <div className="sm:col-span-4">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <div className="flex items-center gap-2 truncate">
-                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Categoría" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CATEGORIES}>Todas las categorías</SelectItem>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* D & E. FILTROS SECUNDARIOS (Ciudad y Fecha) en Desktop */}
+        <div className="hidden items-center gap-3 pt-1 md:flex">
+          {/* Filtro Ciudad */}
+          <Select
+            value={city ?? ALL_OPTION}
+            onValueChange={(val) => updateSearchParams({ city: val })}
+          >
+            <SelectTrigger className="w-52" aria-label="Filtrar por ciudad">
+              <SelectValue placeholder="Todas las ciudades" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_OPTION}>Todas las ciudades</SelectItem>
+              {availableCities.map((cityName) => (
+                <SelectItem key={cityName} value={cityName}>
+                  {cityName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          {/* Desplegable Ciudad */}
-          <div className="sm:col-span-4">
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
-              <SelectTrigger>
-                <div className="flex items-center gap-2 truncate">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Ciudad" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CITIES}>Todas las ciudades</SelectItem>
-                {availableCities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Filtro Fecha */}
+          <Select
+            value={period ?? ALL_OPTION}
+            onValueChange={(val) =>
+              updateSearchParams({ period: val as DateFilterPeriod | typeof ALL_OPTION })
+            }
+          >
+            <SelectTrigger className="w-52" aria-label="Filtrar por fecha">
+              <SelectValue placeholder="Cualquier fecha" />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_PERIOD_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          {/* Ordenación */}
-          <div className="sm:col-span-4">
-            <Select value={sortBy} onValueChange={(val) => setSortBy(val as SortOption)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Más recientes primero</SelectItem>
-                <SelectItem value="oldest">Más antiguos primero</SelectItem>
-                <SelectItem value="title">Título (A-Z)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Chips de filtros activos */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Filtros activos:</span>
-              {searchQuery && (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  Texto: "{searchQuery}"
-                  <X
-                    className="h-3 w-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                    onClick={() => setSearchQuery('')}
-                  />
-                </Badge>
-              )}
-              {selectedCategory !== ALL_CATEGORIES && (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  Categoría:{' '}
-                  {CATEGORIES.find((c) => c.id === selectedCategory)?.label || selectedCategory}
-                  <X
-                    className="h-3 w-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedCategory(ALL_CATEGORIES)}
-                  />
-                </Badge>
-              )}
-              {selectedCity !== ALL_CITIES && (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  Ciudad: {selectedCity}
-                  <X
-                    className="h-3 w-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedCity(ALL_CITIES)}
-                  />
-                </Badge>
-              )}
-              {typeFilter !== 'all' && (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  Tipo: {typeFilter === 'found' ? 'Encontrados' : 'Perdidos'}
-                  <X
-                    className="h-3 w-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                    onClick={() => setTypeFilter('all')}
-                  />
-                </Badge>
-              )}
-            </div>
-
+          {hasActiveFilters ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={clearAllFilters}
-              className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              onClick={handleResetAll}
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              <FilterX className="mr-1 h-3.5 w-3.5" />
-              Limpiar filtros
+              <RotateCcw className="size-3.5" />
+              Restablecer filtros
             </Button>
-          </div>
-        )}
-      </div>
+          ) : null}
+        </div>
 
-      {/* ESTADO 1: Cargando (Skeleton Grid) */}
-      {isLoading && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="flex flex-col space-y-3 rounded-xl border bg-card p-4">
-              <Skeleton className="h-48 w-full rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-              <Skeleton className="mt-4 h-9 w-full rounded-md" />
-            </div>
+        {/* CHIPS DE FILTROS ACTIVOS */}
+        {hasActiveFilters ? (
+          <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+            <span className="font-medium text-muted-foreground">Filtros:</span>
+
+            {q ? (
+              <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5 font-normal">
+                <span>Texto: «{q}»</span>
+                <button
+                  type="button"
+                  onClick={() => removeFilter('q')}
+                  className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  aria-label="Quitar filtro de texto"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ) : null}
+
+            {category ? (
+              <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5 font-normal">
+                <span>Categoría: {getCategoryLabel(category)}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFilter('category')}
+                  className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  aria-label="Quitar filtro de categoría"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ) : null}
+
+            {city ? (
+              <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5 font-normal">
+                <span>Ciudad: {city}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFilter('city')}
+                  className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  aria-label="Quitar filtro de ciudad"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ) : null}
+
+            {period ? (
+              <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5 font-normal">
+                <span>Fecha: {currentPeriodLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFilter('period')}
+                  className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  aria-label="Quitar filtro de fecha"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleResetAll}
+              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              Limpiar todos
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      {/* F. RESULTADOS Y CONTADOR */}
+      {!itemsQuery.isPending && !itemsQuery.isError ? (
+        <div className="flex items-center justify-between text-sm text-muted-foreground" aria-live="polite">
+          <p>{count === 1 ? '1 objeto encontrado' : `${count} objetos encontrados`}</p>
+        </div>
+      ) : null}
+
+      {/* ESTADOS OBLIGATORIOS */}
+
+      {/* 1. ESTADO DE CARGA: Skeleton */}
+      {itemsQuery.isPending ? (
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4"
+          aria-busy="true"
+          aria-label="Cargando objetos"
+        >
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-72 rounded-xl sm:h-80" />
           ))}
         </div>
-      )}
+      ) : null}
 
-      {/* ESTADO 2: Error */}
-      {isError && (
+      {/* 2. ESTADO DE ERROR: Alert con Reintentar */}
+      {itemsQuery.isError ? (
         <Alert variant="destructive">
-          <AlertTitle className="text-base font-semibold">Error al cargar los objetos</AlertTitle>
-          <AlertDescription className="mt-1">
-            {error instanceof Error
-              ? error.message
-              : 'Ocurrió un problema inesperado al consultar los datos.'}
+          <TriangleAlert className="size-4" />
+          <AlertTitle>No hemos podido cargar los objetos</AlertTitle>
+          <AlertDescription>
+            Ha ocurrido un problema al consultar los datos. Por favor, inténtalo de nuevo.
           </AlertDescription>
           <AlertAction>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-3 gap-2">
-              <RotateCcw className="h-4 w-4" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => itemsQuery.refetch()}
+            >
               Reintentar
             </Button>
           </AlertAction>
         </Alert>
-      )}
+      ) : null}
 
-      {/* ESTADO 3: Vacío (Sin resultados) */}
-      {!isLoading && !isError && filteredItems.length === 0 && (
-        <Empty className="my-12 py-12">
-          <EmptyMedia>
-            <PackageSearch className="h-12 w-12 text-muted-foreground" />
-          </EmptyMedia>
+      {/* 3. ESTADO VACÍO: Empty */}
+      {!itemsQuery.isPending && !itemsQuery.isError && count === 0 ? (
+        <Empty className="border border-dashed py-16">
           <EmptyHeader>
-            <EmptyTitle>No se encontraron objetos</EmptyTitle>
+            <EmptyMedia variant="icon">
+              <PackageSearch className="size-6 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>No encontramos ningún objeto con estos filtros</EmptyTitle>
             <EmptyDescription>
               {hasActiveFilters
-                ? 'No hay publicaciones que coincidan con los filtros seleccionados. Pruebe a cambiar o limpiar los términos de búsqueda.'
-                : 'Actualmente no hay objetos registrados en el sistema.'}
+                ? 'Prueba a cambiar los términos de búsqueda o a eliminar algún filtro para ver más resultados.'
+                : 'Aún no se ha publicado ningún objeto en la comunidad.'}
             </EmptyDescription>
           </EmptyHeader>
-          {hasActiveFilters && (
-            <Button variant="outline" onClick={clearAllFilters} className="mt-4 gap-2">
-              <FilterX className="h-4 w-4" />
-              Limpiar todos los filtros
-            </Button>
-          )}
+          {hasActiveFilters ? (
+            <EmptyContent>
+              <Button type="button" variant="outline" size="sm" onClick={handleResetAll}>
+                <RotateCcw className="size-3.5" data-icon="inline-start" />
+                Restablecer filtros
+              </Button>
+            </EmptyContent>
+          ) : null}
         </Empty>
-      )}
+      ) : null}
 
-      {/* ESTADO 4: Con Datos (Feed Grid) */}
-      {!isLoading && !isError && filteredItems.length > 0 && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredItems.map((item) => (
-            <ItemCard key={item.id} item={item} />
+      {/* 4. ESTADO CON DATOS: Grid responsive */}
+      {!itemsQuery.isPending && !itemsQuery.isError && count > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+          {items.map((item) => (
+            <SearchItemCard key={item.id} item={item} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
-
