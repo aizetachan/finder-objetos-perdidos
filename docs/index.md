@@ -11,6 +11,7 @@ falta para trabajar en ella y el registro de cómo la vamos construyendo.
 | Si quieres… | Lee |
 |---|---|
 | Instalar todo y arrancar el proyecto por primera vez | [Guía del equipo](GUIA-EQUIPO) |
+| Darle a tu IA (Claude, ChatGPT, Gemini…) el contexto para empezar | [Prompt de inicio para tu IA](PROMPT-INICIO) |
 | Saber cómo se trabaja cada día (ramas, PR, preview) y qué hacer si algo va mal | [Flujo de trabajo](FLUJO-DE-TRABAJO) |
 | Entender qué estamos construyendo y quién lleva qué | [Producto](PRODUCTO) |
 | Entender de dónde salen los datos que ves en la web | [Entornos](ENTORNOS) |

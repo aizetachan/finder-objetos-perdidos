@@ -11,3 +11,6 @@ aux_links:
 back_to_top: true
 back_to_top_text: Volver arriba
 footer_content: "Finder · documentación del equipo"
+
+# Botón de copiar en los bloques de código (para los prompts).
+enable_copy_code_button: true
