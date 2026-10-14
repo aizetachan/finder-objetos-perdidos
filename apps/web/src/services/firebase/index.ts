@@ -298,4 +298,8 @@ export const services: Services = {
       toServiceError(error)
     }
   },
+
+  async cancelClaim() {
+    throw new Error('Pendiente de implementar')
+  },
 }

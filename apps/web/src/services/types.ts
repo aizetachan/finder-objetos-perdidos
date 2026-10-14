@@ -38,6 +38,7 @@ export interface Services {
   getMyClaims(): Promise<Claim[]>
   getClaimsOnMyItems(): Promise<Claim[]>
   resolveClaim(claimId: string, status: Exclude<ClaimStatus, 'pending'>): Promise<void>
+  cancelClaim(claimId: string): Promise<void>
 }
 
 // Error con un mensaje pensado para enseñárselo a la persona tal cual.

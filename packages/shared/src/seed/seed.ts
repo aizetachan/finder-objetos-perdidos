@@ -508,5 +508,17 @@ export const seed: SeedData = {
       status: 'pending',
       createdAt: recentDate(0, 1),
     },
+    // Reclamación ENVIADA por Lucía, para que "Mis reclamaciones" tenga datos al entrar con su cuenta.
+    {
+      id: 'claim-keys',
+      itemId: 'item-keys',
+      itemTitle: 'Llaves con llavero rojo',
+      itemOwnerId: 'user-carlos',
+      claimantId: 'user-lucia',
+      claimantContact: { name: 'Lucía Martín', email: 'lucia@example.com' },
+      proof: 'Una de las llaves lleva una funda de goma verde y el llavero pone Peñíscola, de un viaje de verano.',
+      status: 'pending',
+      createdAt: recentDate(1, 3),
+    },
   ],
 }
