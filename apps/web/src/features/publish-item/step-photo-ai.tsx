@@ -69,6 +69,8 @@ const SAMPLE_SCENARIOS: SampleScenario[] = [
 
 export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialData?.photoUrl ?? null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -126,6 +128,12 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = ''
+    }
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = ''
+    }
   }
 
   function handleSubmit() {
@@ -162,6 +170,34 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
         {/* Zona de subida de imagen */}
         {!photoUrl && !isAnalyzing ? (
           <div className="space-y-4">
+            {/* Adaptación Móvil: Botonera de doble jerarquía (block sm:hidden) */}
+            <div className="block sm:hidden space-y-3">
+              <div className="flex flex-col gap-2.5">
+                <Button
+                  type="button"
+                  variant="default"
+                  size="lg"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-full gap-2 text-sm font-medium"
+                >
+                  📷 Hacer foto
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-full gap-2 text-sm font-medium"
+                >
+                  🖼️ Elegir de la galería
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                Formatos admitidos: JPG, PNG o WEBP (máx. 10 MB).
+              </p>
+            </div>
+
+            {/* Escritorio: Dropzone tradicional de arrastrar o hacer clic (hidden sm:flex) */}
             <div
               role="button"
               tabIndex={0}
@@ -172,7 +208,7 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
                   fileInputRef.current?.click()
                 }
               }}
-              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/20 p-8 text-center transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:border-ring focus-visible:outline-hidden"
+              className="group hidden sm:flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/20 p-8 text-center transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:border-ring focus-visible:outline-hidden"
             >
               <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform group-hover:scale-105">
                 <Upload className="size-6" />
@@ -187,7 +223,7 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="hidden sm:flex justify-center">
               <Button
                 type="button"
                 variant="outline"
@@ -221,10 +257,26 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
               </div>
             </div>
 
+            {/* Inputs ocultos */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/*"
               className="hidden"
               onChange={handleFileChange}
             />

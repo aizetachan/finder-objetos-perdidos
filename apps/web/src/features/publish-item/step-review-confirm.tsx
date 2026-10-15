@@ -4,10 +4,12 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   ExternalLink,
   FileText,
   Loader2,
+  Lock,
   Mail,
   MapPin,
   RotateCcw,
@@ -92,6 +94,7 @@ export function StepReviewConfirm({
 }: StepReviewConfirmProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isEmailVerified, setIsEmailVerified] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState(initialEmail)
 
@@ -142,6 +145,10 @@ export function StepReviewConfirm({
     toast.info('Simulación: Abriendo panel de gestión y seguimiento (#FND-8492)')
   }
 
+  function handleResendEmail() {
+    toast.success(`Correo de activación reenviado a ${submittedEmail || 'tu correo'}`)
+  }
+
   const deliveryInfo = step3Data?.deliveryMethod
     ? DELIVERY_METHOD_DETAILS[step3Data.deliveryMethod] ?? {
         emoji: '📍',
@@ -149,34 +156,170 @@ export function StepReviewConfirm({
       }
     : { emoji: '📍', label: 'No seleccionado' }
 
+  const isGmail =
+    submittedEmail.toLowerCase().trim().endsWith('@gmail.com') ||
+    submittedEmail.toLowerCase().trim().endsWith('@googlemail.com')
+
   // Pantalla de Éxito / Feedback final
   if (isSuccess) {
+    // 1. Estado Pendiente de Confirmación (pending_verification):
+    // Limpio y sin saturación, con foco exclusivo en la activación por correo
+    if (!isEmailVerified) {
+      return (
+        <Card className="w-full text-center py-6 sm:py-8 border bg-card">
+          <CardContent className="space-y-6 flex flex-col items-center">
+            {/* Icono de correo pendiente */}
+            <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Mail className="size-8" />
+            </div>
+
+            {/* Encabezado y explicación contextual con enlace directo a Gmail si aplica */}
+            <div className="space-y-2 max-w-md mx-auto">
+              <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                ¡Casi listo! Confirma tu correo
+              </CardTitle>
+              <p className="text-sm text-muted-foreground leading-normal">
+                Hemos enviado un enlace de activación a{' '}
+                <strong className="text-foreground font-semibold">
+                  {submittedEmail || 'tu correo'}
+                </strong>.
+                {isGmail ? (
+                  <a
+                    href="https://mail.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline underline-offset-4 inline-flex items-center gap-1 font-medium ml-1.5"
+                  >
+                    Abrir Gmail <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
+              </p>
+            </div>
+
+            {/* Mini stepper horizontal sutil (3 pasos discretos) */}
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 text-xs py-1">
+              {/* Paso 1: Datos enviados (Check verde) */}
+              <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                <div className="flex size-5 items-center justify-center rounded-full bg-emerald-500/15">
+                  <Check className="size-3 stroke-[2.5]" />
+                </div>
+                <span>1. Datos enviados</span>
+              </div>
+
+              {/* Conector 1 -> 2 */}
+              <div className="h-0.5 w-4 sm:w-8 rounded-full bg-emerald-500/40" />
+
+              {/* Paso 2: Confirmar email (Reloj amarillo activo) */}
+              <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+                <div className="flex size-5 items-center justify-center rounded-full bg-amber-500/15 animate-pulse">
+                  <Clock className="size-3" />
+                </div>
+                <span>2. Confirmar email</span>
+              </div>
+
+              {/* Conector 2 -> 3 */}
+              <div className="h-0.5 w-4 sm:w-8 rounded-full bg-muted-foreground/20" />
+
+              {/* Paso 3: Activo en catálogo (Candado en espera) */}
+              <div className="flex items-center gap-1.5 font-medium text-muted-foreground/60">
+                <div className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground/60">
+                  <Lock className="size-2.5" />
+                </div>
+                <span>3. Activo en catálogo</span>
+              </div>
+            </div>
+
+            {/* Acción terciaria discreta: reenviar correo */}
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResendEmail}
+                className="text-muted-foreground hover:text-foreground text-xs"
+              >
+                ¿No lo has recibido? Reenviar correo
+              </Button>
+            </div>
+
+            {/* Control de presentación (Demo): simular verificación */}
+            <div className="w-full max-w-sm border-t border-dashed border-border/80 pt-4 mt-2 flex flex-col items-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEmailVerified(true)
+                  toast.success('¡Email verificado! Tu publicación ya está activa en el catálogo.')
+                }}
+                className="border-dashed text-xs text-muted-foreground hover:text-foreground"
+              >
+                [Demo] Simular verificación de email
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    // 2. Estado Activo / Verificado (active_published):
+    // Revela la tarjeta oficial de seguimiento y los botones de navegación
     return (
       <Card className="w-full text-center py-6 sm:py-8 border bg-card">
         <CardContent className="space-y-6 flex flex-col items-center">
+          {/* Icono de publicación exitosa */}
           <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CheckCircle2 className="size-10" />
           </div>
 
+          {/* Encabezado confirmado */}
           <div className="space-y-2 max-w-md mx-auto">
             <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               ¡Objeto publicado con éxito!
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              Ya está visible en el catálogo de hallazgos. Te enviaremos un correo si alguien lo
-              reclama con el detalle correcto.
+              Tu correo ha sido verificado y el objeto ya está activo y visible en el catálogo de
+              hallazgos.
             </CardDescription>
           </div>
 
-          {/* Bloque interactivo del código de seguimiento */}
+          {/* Mini stepper: los 3 pasos completados en verde */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 text-xs py-1">
+            <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex size-5 items-center justify-center rounded-full bg-emerald-500/15">
+                <Check className="size-3 stroke-[2.5]" />
+              </div>
+              <span>1. Datos enviados</span>
+            </div>
+
+            <div className="h-0.5 w-4 sm:w-8 rounded-full bg-emerald-500/40" />
+
+            <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex size-5 items-center justify-center rounded-full bg-emerald-500/15">
+                <Check className="size-3 stroke-[2.5]" />
+              </div>
+              <span>2. Email confirmado</span>
+            </div>
+
+            <div className="h-0.5 w-4 sm:w-8 rounded-full bg-emerald-500/40" />
+
+            <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex size-5 items-center justify-center rounded-full bg-emerald-500/15">
+                <Check className="size-3 stroke-[2.5]" />
+              </div>
+              <span>3. Activo en catálogo</span>
+            </div>
+          </div>
+
+          {/* Tarjeta oficial de seguimiento */}
           <div className="rounded-lg border bg-muted/30 p-5 max-w-md w-full space-y-3.5 text-center">
-            {/* Insignia de estado actual */}
+            {/* Insignia verde oficial */}
             <div className="flex justify-center">
               <Badge
                 variant="outline"
                 className="border-border bg-background px-3 py-1 text-xs font-normal"
               >
-                🟢 Activo en catálogo (Buscando dueño)
+                🟢 Publicado y visible (Buscando dueño)
               </Badge>
             </div>
 
@@ -184,7 +327,7 @@ export function StepReviewConfirm({
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                 Código de seguimiento
               </p>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
                   onClick={handleOpenTracking}
@@ -194,30 +337,22 @@ export function StepReviewConfirm({
                   <span>#FND-8492</span>
                   <ExternalLink className="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
                 </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopyLink}
+                  title={isCopied ? '¡Enlace copiado!' : 'Copiar enlace de seguimiento'}
+                  className="size-8 text-muted-foreground hover:text-foreground"
+                  aria-label="Copiar enlace de seguimiento"
+                >
+                  {isCopied ? (
+                    <Check className="size-4 text-primary" />
+                  ) : (
+                    <Copy className="size-4" />
+                  )}
+                </Button>
               </div>
-            </div>
-
-            {/* Botón interactivo de copiar */}
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLink}
-                className="gap-2 text-xs font-medium border-border w-full sm:w-auto"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="size-3.5 text-primary" />
-                    ¡Enlace copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="size-3.5 text-muted-foreground" />
-                    Copiar enlace de seguimiento
-                  </>
-                )}
-              </Button>
             </div>
 
             {/* Microcopy bajo el código */}
@@ -234,7 +369,7 @@ export function StepReviewConfirm({
             ) : null}
           </div>
 
-          {/* Acciones finales */}
+          {/* Botones de salida jerarquizados */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-sm pt-2">
             <Button asChild className="w-full sm:w-auto flex-1 gap-2">
               <Link to={paths.home}>Ver en el catálogo de objetos</Link>
@@ -247,6 +382,22 @@ export function StepReviewConfirm({
             >
               <RotateCcw className="size-4" />
               Publicar otro objeto
+            </Button>
+          </div>
+
+          {/* Control de presentación (Demo): volver a pendiente si se desea */}
+          <div className="w-full max-w-sm border-t border-dashed border-border/80 pt-4 mt-1 flex flex-col items-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsEmailVerified(false)
+                toast.info('Simulación: Estado restablecido a pendiente de confirmación.')
+              }}
+              className="border-dashed text-xs text-muted-foreground hover:text-foreground"
+            >
+              [Demo] Restablecer a estado pendiente
             </Button>
           </div>
         </CardContent>
