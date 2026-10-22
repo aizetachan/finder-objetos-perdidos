@@ -25,7 +25,7 @@ Funciona como un buscador tipo tienda online:
 Más adelante (no en la fase 1) también se podrán publicar avisos de "he perdido X". El modelo de datos ya está preparado para ello.
 
 ### ¿Cómo funciona la parte de donaciones?
-Una persona puede regalar desinteresadamente un objeto propio que ya no utiliza, o bien dar salida a un objeto encontrado que no fue reclamado. Las personas interesadas solicitan el objeto explicando brevemente su motivo, y el donante elige a quién entregárselo.
+Una persona puede regalar desinteresadamente un objeto propio que ya no utiliza, o bien, si un objeto encontrado cumple el periodo estipulado sin haber sido reclamado, la persona que lo encontró puede decidir voluntariamente ofrecerlo como donación (Finder nunca lo convierte de forma automática). Las personas interesadas solicitan el objeto explicando brevemente su motivo, y el donante elige a quién entregárselo.
 
 **Regla fundamental:** Las donaciones en Finder son **siempre gratuitas**. Finder **no** es una plataforma de compraventa ni admite precios, pujas ni ningún tipo de transacción económica.
 
@@ -75,10 +75,12 @@ Donaciones es una funcionalidad diferenciada dentro de Finder que permite regala
    - Quien publica declara bajo su responsabilidad que el objeto es suyo o que está debidamente autorizado para donarlo.
    - Es siempre gratuita.
 
-2. **Objeto encontrado que pasa a donación:**
+2. **Objeto encontrado que pasa a donación (decisión voluntaria):**
    Un objeto que fue encontrado y publicado originalmente en el buscador de objetos perdidos para localizar a su propietario puede, tras transcurrir un tiempo determinado sin ninguna reclamación legítima, convertirse en una donación disponible para la comunidad.
-   - Flujo de transición: `Encontrado` → `Buscando dueño` → `No reclamado` → `Disponible para donar` → `Donado`.
-   - ❓ **Decisión abierta del equipo:** ¿Cuánto tiempo debe permanecer un objeto encontrado buscando a su propietario antes de poder convertirse en donación?
+   - **Sin conversión automática:** Finder **nunca** convierte automáticamente un objeto encontrado en donación. El mero transcurso del tiempo solo hace que el objeto pase a ser **elegible para donar**, jamás provoca una conversión automática del sistema.
+   - **Voluntariedad:** Una vez cumplidas las condiciones y el plazo fijado por el equipo, la persona que publicó/encontró el objeto puede **decidir voluntariamente** si desea ofrecerlo como donación o no.
+   - Flujo de transición: `Encontrado` → `Buscando dueño` → `Elegible para donación (no reclamado)` → `Decisión voluntaria de donar` → `Disponible para donar` → `Donado`.
+   - ❓ **Decisión abierta del equipo:** ¿Cuánto tiempo debe permanecer un objeto encontrado buscando a su propietario antes de ser elegible para que quien lo encontró pueda decidir ofrecerlo como donación?
    - ❓ **Decisión abierta del equipo:** ¿Qué categorías o tipos de objetos encontrados nunca podrán convertirse en donación? (Ejemplos evidentes a valorar y excluir: documentación personal, tarjetas bancarias o de transporte, llaves, dispositivos bloqueados con datos privados y objetos similares de carácter personal o sensible).
 
 ### B. Publicar una donación (Fase 1)
@@ -152,11 +154,12 @@ Entrar a Donaciones → Explorar y filtrar catálogo (categoría, ciudad) → Ab
                                 [Si no es seleccionado: notificación de solicitud no seleccionada]
 ```
 
-### Flujo 3: Objeto encontrado que pasa a donación
+### Flujo 3: Objeto encontrado que pasa a donación (decisión voluntaria)
 ```
-Objeto encontrado publicado → Transcurre el periodo obligatorio buscando dueño → Nadie reclama legítimamente el objeto
-→ Objeto queda como "No reclamado" → El publicador (o el sistema) lo convierte en donación
-→ Entra en el flujo normal de Donaciones (estado "Disponible") con fotos y descripción públicas
+Objeto encontrado publicado → Transcurre el periodo obligatorio buscando dueño sin reclamaciones legítimas
+→ El objeto pasa a ser elegible para donación (Finder nunca lo convierte de forma automática)
+→ La persona que lo publicó/encontró decide voluntariamente ofrecerlo como donación
+→ Entra en el catálogo de Donaciones (estado "Disponible") con fotos y descripción públicas
 ```
 
 ## 7. Pantallas y rutas
@@ -184,6 +187,9 @@ Objeto encontrado publicado → Transcurre el periodo obligatorio buscando dueñ
 
 Los nombres de campos van en inglés (convención de código). Un archivo por colección en `packages/shared/src/types/`.
 
+> **Propuesta de modelo conceptual para Donaciones:**
+> Los campos y estados técnicos asociados a Donaciones en `items` (como `donationOrigin`, `condition`, `deliveryNotes`, y los estados `available`, `reserved`, `donated`) así como la entidad `donationRequests` descritos a continuación son una **propuesta de modelo conceptual** para orientar la futura implementación técnica. No constituyen una arquitectura técnica cerrada ni aprobada todavía por el equipo/Lead.
+
 ### `users` — perfil público de las personas con cuenta
 
 El email **no** está aquí: es privado y vive solo en la cuenta (Firebase Auth).
@@ -196,23 +202,23 @@ El email **no** está aquí: es privado y vive solo en la cuenta (Firebase Auth)
 | `city` | texto, opcional | |
 | `createdAt` | fecha | |
 
-### `items` — objetos publicados (hallazgos y donaciones)
+### `items` — objetos publicados (hallazgos y propuesta conceptual para donaciones)
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | texto | Identificador único |
-| `type` | `'found'` \| `'lost'` \| `'donation'` | Tipo de publicación. En Fase 1: `'found'` para objetos encontrados y `'donation'` para donaciones |
-| `donationOrigin` | `'direct'` \| `'unclaimed_found'` \| opcional | Origen de la donación (solo si `type === 'donation'`) |
+| `type` | `'found'` \| `'lost'` \| `'donation'` | Tipo de publicación. En Fase 1 actual: `'found'`. Para donaciones se propone `'donation'` |
+| `donationOrigin` | `'direct'` \| `'unclaimed_found'` \| opcional | *(Propuesta conceptual)* Origen de la donación (solo si `type === 'donation'`) |
 | `title` | texto | "Raqueta de tenis junior Wilson" o "Cartera marrón de piel" |
 | `description` | texto | Descripción **pública** |
 | `category` | una de la lista de categorías | Categoría del objeto |
-| `condition` | `'like_new'` \| `'good'` \| `'used_functional'` \| opcional | Estado de conservación (solo donaciones: Como nuevo, Buen estado, Usado pero funcional) |
+| `condition` | `'like_new'` \| `'good'` \| `'used_functional'` \| opcional | *(Propuesta conceptual)* Estado de conservación (solo donaciones: Como nuevo, Buen estado, Usado pero funcional) |
 | `photos` | lista de URLs | Imágenes del objeto (en fase 1, de ejemplo) |
 | `city` | texto | Ciudad para filtrado |
 | `locationText` | texto | Zona o barrio aproximado. Sin mapas en fase 1 |
-| `deliveryNotes` | texto, opcional | Indicaciones y preferencias de entrega en persona |
+| `deliveryNotes` | texto, opcional | *(Propuesta conceptual)* Indicaciones y preferencias de entrega en persona |
 | `date` | fecha | Cuándo se encontró (hallazgo) o cuándo se puso a disposición |
-| `status` | `'published'` \| `'claimed'` \| `'returned'` \| `'available'` \| `'reserved'` \| `'donated'` | Hallazgos: `published` → `claimed` → `returned`. Donaciones: `available` → `reserved` → `donated` |
+| `status` | `'published'` \| `'claimed'` \| `'returned'` \| `'available'` \| `'reserved'` \| `'donated'` | Hallazgos: `published` → `claimed` → `returned`. Donaciones (propuesta conceptual): `available` → `reserved` → `donated` |
 | `createdBy`, `createdByName` | id y nombre de usuario | Quien lo publicó o donó |
 | `createdAt`, `updatedAt` | fecha | Marcas de tiempo ISO |
 
@@ -233,7 +239,9 @@ Van en el subdocumento privado `items/{id}/private/details`, con un campo `hidde
 | `status` | `'pending'` \| `'accepted'` \| `'rejected'` | Estado de la reclamación |
 | `createdAt`, `resolvedAt` | fecha | Marcas de tiempo ISO |
 
-### `donationRequests` — solicitudes de donación
+### `donationRequests` — propuesta de solicitudes de donación (modelo conceptual)
+
+> **Nota:** Esta entidad, sus campos y sus estados son una propuesta de modelo conceptual para orientar la futura implementación, no una arquitectura técnica cerrada o aprobada todavía.
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -261,6 +269,7 @@ Electrónica · Documentos · Llaves · Carteras y bolsos · Ropa y complementos
 Quedan **expresamente fuera del alcance de la fase 1**:
 
 - **Compraventa y dinero:** Precios, cobros, pagos, comisiones, transferencias o pujas/subastas. Las donaciones son siempre 100% gratuitas.
+- **Conversión automática:** Finder nunca convierte automáticamente un objeto encontrado en donación; el transcurso del tiempo solo confiere elegibilidad para que la persona que lo encontró decida voluntariamente ofrecerlo.
 - **Logística y envíos integrados:** Integración de transportistas o paquetería. Las entregas se acuerdan y realizan exclusivamente en persona.
 - **Chat y mensajería instantánea:** Sin comunicación en tiempo real dentro de la web; el acuerdo se realiza por correo electrónico o teléfono tras la aceptación.
 - **Mapas y geolocalización avanzada:** Sin mapas interactivos ni cálculo de distancias por GPS.
@@ -274,11 +283,10 @@ Quedan **expresamente fuera del alcance de la fase 1**:
 
 ## 11. Decisiones abiertas del equipo
 
-Aspectos señalados con ❓ pendientes de definición por el equipo:
+Aspectos señalados con ❓ pendientes de definición por el equipo específicos para Donaciones:
 
-1. ❓ **Tiempo mínimo para convertir hallazgos en donación:** ¿Cuánto tiempo debe permanecer un objeto encontrado buscando a su propietario antes de que pueda pasar a donación disponible?
-2. ❓ **Categorías de hallazgos excluidas de donación:** ¿Qué categorías o tipos específicos de objetos encontrados nunca podrán donarse bajo ningún concepto? (Ej. documentos de identidad, pasaportes, tarjetas bancarias, llaves de viviendas/vehículos o dispositivos personales bloqueados con datos privados).
-3. ❓ **Moderación:** Cómo se gestionarán en fases futuras reportes de abusos o donaciones inapropiadas una vez existan usuarios reales.
+1. ❓ **Tiempo mínimo para que un objeto encontrado sea elegible para donación:** ¿Cuánto tiempo debe permanecer un objeto encontrado buscando a su propietario antes de ser elegible para que la persona que lo encontró pueda decidir voluntariamente ofrecerlo como donación?
+2. ❓ **Categorías/tipos de objetos encontrados que no pueden donarse:** ¿Qué categorías o tipos específicos de objetos encontrados nunca podrán convertirse en donación? (Ejemplos a valorar y excluir: documentación personal, tarjetas bancarias o de transporte, llaves, dispositivos bloqueados con datos privados y objetos similares de carácter personal o sensible).
 
 ## 12. Idioma
 
