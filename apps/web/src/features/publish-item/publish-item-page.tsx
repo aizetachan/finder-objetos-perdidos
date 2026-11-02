@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { cn } from '@/lib/utils'
@@ -6,6 +5,7 @@ import { StepLocationDate, type StepLocationDateData } from './step-location-dat
 import { StepPhotoAi, type StepPhotoAiData } from './step-photo-ai'
 import { StepReviewConfirm } from './step-review-confirm'
 import { StepSecurityLogistics, type StepSecurityLogisticsData } from './step-security-logistics'
+import { usePublishDraft } from './use-publish-draft'
 
 interface WizardStep {
   number: number
@@ -20,54 +20,59 @@ const WIZARD_STEPS: WizardStep[] = [
 ]
 
 export function PublishItemPage() {
-  const [currentStep, setCurrentStep] = useState<number>(1)
-  const [step1Data, setStep1Data] = useState<StepPhotoAiData | null>(null)
-  const [step2Data, setStep2Data] = useState<StepLocationDateData | null>(null)
-  const [step3Data, setStep3Data] = useState<StepSecurityLogisticsData | null>(null)
-  const [contactEmail, setContactEmail] = useState<string>('')
+  const { draft, updateDraft, resetDraft } = usePublishDraft()
+  const currentStep = draft.currentStep
+  const step1Data = draft.step1Data
+  const step2Data = draft.step2Data
+  const step3Data = draft.step3Data
+  const contactEmail = draft.contactEmail
 
   function handleStep1Continue(data: StepPhotoAiData) {
-    setStep1Data(data)
-    setCurrentStep(2)
+    updateDraft({ step1Data: data, currentStep: 2 })
   }
 
   function handleStep2Back(currentValues?: Partial<StepLocationDateData>) {
-    if (currentValues) {
-      setStep2Data((prev) => ({ ...prev, ...currentValues } as StepLocationDateData))
-    }
-    setCurrentStep(1)
+    updateDraft((prev) => ({
+      ...prev,
+      step2Data: currentValues
+        ? ({ ...prev.step2Data, ...currentValues } as StepLocationDateData)
+        : prev.step2Data,
+      currentStep: 1,
+    }))
   }
 
   function handleStep2Continue(data: StepLocationDateData) {
-    setStep2Data(data)
-    setCurrentStep(3)
+    updateDraft({ step2Data: data, currentStep: 3 })
   }
 
   function handleStep3Back(currentValues?: Partial<StepSecurityLogisticsData>) {
-    if (currentValues) {
-      setStep3Data((prev) => ({ ...prev, ...currentValues } as StepSecurityLogisticsData))
-    }
-    setCurrentStep(2)
+    updateDraft((prev) => ({
+      ...prev,
+      step3Data: currentValues
+        ? ({ ...prev.step3Data, ...currentValues } as StepSecurityLogisticsData)
+        : prev.step3Data,
+      currentStep: 2,
+    }))
   }
 
   function handleStep3Continue(data: StepSecurityLogisticsData) {
-    setStep3Data(data)
-    setCurrentStep(4)
+    updateDraft({ step3Data: data, currentStep: 4 })
   }
 
   function handleStep4Back(currentEmail?: string) {
-    if (currentEmail) {
-      setContactEmail(currentEmail)
-    }
-    setCurrentStep(3)
+    updateDraft((prev) => ({
+      ...prev,
+      contactEmail: currentEmail ?? prev.contactEmail,
+      currentStep: 3,
+    }))
+  }
+
+  function handleGoToStep(stepNumber: number) {
+    updateDraft({ currentStep: stepNumber })
   }
 
   function handleReset() {
-    setStep1Data(null)
-    setStep2Data(null)
-    setStep3Data(null)
-    setContactEmail('')
-    setCurrentStep(1)
+    resetDraft()
   }
 
   return (
@@ -92,7 +97,7 @@ export function PublishItemPage() {
                     'h-1.5 w-full rounded-full transition-colors',
                     isActive && 'bg-primary',
                     isCompleted && 'bg-primary/80',
-                    !isActive && !isCompleted && 'bg-muted'
+                    !isActive && !isCompleted && 'bg-muted',
                   )}
                 />
                 <div className="flex min-w-0 items-center gap-1">
@@ -104,7 +109,7 @@ export function PublishItemPage() {
                       'truncate text-xs sm:text-sm font-medium transition-colors',
                       isActive && 'font-semibold text-foreground',
                       isCompleted && 'text-muted-foreground',
-                      !isActive && !isCompleted && 'text-muted-foreground/60'
+                      !isActive && !isCompleted && 'text-muted-foreground/60',
                     )}
                   >
                     {step.title}
@@ -148,6 +153,7 @@ export function PublishItemPage() {
             step3Data={step3Data}
             initialEmail={contactEmail}
             onBack={handleStep4Back}
+            onGoToStep={handleGoToStep}
             onReset={handleReset}
           />
         ) : null}

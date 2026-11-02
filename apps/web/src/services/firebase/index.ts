@@ -39,6 +39,9 @@ function toAuthUser(user: FirebaseUser): AuthUser {
     id: user.uid,
     email: user.email ?? '',
     displayName: user.displayName ?? '',
+    emailVerified: user.emailVerified,
+    identityStatus: 'none',
+    isGuest: Boolean(user.isAnonymous),
     ...(user.photoURL ? { photoURL: user.photoURL } : {}),
   }
 }
@@ -52,6 +55,9 @@ function requireUser(): AuthUser {
 
 const authMessages: Record<string, string> = {
   'auth/invalid-credential': 'El email o la contraseña no son correctos.',
+  'auth/wrong-password': 'El email o la contraseña no son correctos.',
+  'auth/user-not-found': 'El email o la contraseña no son correctos.',
+  'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos y vuelve a probar.',
   'auth/email-already-in-use': 'Ya existe una cuenta con ese email.',
   'auth/weak-password': 'La contraseña es demasiado corta.',
   'auth/invalid-email': 'Ese email no es válido.',
@@ -62,6 +68,33 @@ function toServiceError(error: unknown): never {
   if (error instanceof FirebaseError) {
     if (error.code === 'permission-denied') {
       throw new ServiceError('not-allowed', 'No tienes permiso para hacer esto.')
+    }
+    if (error.code === 'auth/email-already-in-use') {
+      throw new ServiceError('already-exists', 'Ya existe una cuenta con ese email.')
+    }
+    if (error.code === 'auth/too-many-requests') {
+      throw new ServiceError(
+        'too-many-requests',
+        'Demasiados intentos. Espera unos minutos y vuelve a probar.',
+      )
+    }
+    if (error.code === 'auth/network-request-failed') {
+      throw new ServiceError(
+        'network',
+        'No hemos podido conectar. Revisa tu conexión y vuelve a intentarlo.',
+      )
+    }
+    if (error.code === 'auth/expired-action-code') {
+      throw new ServiceError('expired', 'El enlace ha caducado. Pide uno nuevo para continuar.')
+    }
+    if (error.code === 'auth/invalid-action-code') {
+      throw new ServiceError('already-used', 'Este enlace ya se ha utilizado o no es válido.')
+    }
+    if (error.code === 'auth/popup-closed-by-user') {
+      throw new ServiceError(
+        'popup-closed',
+        'Has cerrado la ventana antes de completar el inicio de sesión.',
+      )
     }
     const message = authMessages[error.code]
     if (message) throw new ServiceError('invalid', message)
@@ -112,6 +145,45 @@ export const services: Services = {
     } catch (error) {
       return toServiceError(error)
     }
+  },
+
+  async signInWithGoogle() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async sendEmailVerification() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async verifyEmail() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  // Se implementará en el paso 5c con Firebase Functions y Auth anónimo / email link
+  async startGuestPublish() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async confirmGuestEmail() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  // linkWithCredential(EmailAuthProvider.credential(email, password)) sobre la cuenta anónima ya vinculada al email + updateProfile; signInWithEmailLink para volver a entrar
+  async signInWithGuestLink() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async completeGuestAccount() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  // Se implementará con una Cloud Function que crea la sesión en el proveedor y un webhook que guarda solo el resultado
+  async startIdentityVerification() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async getIdentityStatus() {
+    throw new Error('Pendiente de implementar')
   },
 
   async signOut() {
@@ -174,6 +246,7 @@ export const services: Services = {
   },
 
   async createItem(input) {
+    // NOTA: La comprobación de email verificado en producción la harán las reglas de seguridad de Firestore en el servidor (zona del lead, issue #49).
     const user = requireUser()
     const { hiddenDetails, ...publicPart } = input
     const ref = doc(collection(db, 'items'))
@@ -222,6 +295,7 @@ export const services: Services = {
   },
 
   async createClaim({ itemId, proof }) {
+    // NOTA: La comprobación de email verificado e identidad verificada en producción la harán las reglas de seguridad de Firestore en el servidor (zona del lead, issue #49).
     const user = requireUser()
     const item = await this.getItem(itemId)
     if (!item) throw new ServiceError('not-found', 'Este objeto ya no existe.')
