@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import sampleKeysPhoto from './sample-keys.jpg'
 
 export interface StepPhotoAiData {
@@ -22,6 +23,7 @@ export interface StepPhotoAiData {
   title: string
   category: CategoryId
   description: string
+  story?: string
 }
 
 interface StepPhotoAiProps {
@@ -77,6 +79,7 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
   const [title, setTitle] = useState(initialData?.title ?? '')
   const [category, setCategory] = useState<CategoryId | ''>(initialData?.category ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
+  const [story, setStory] = useState(initialData?.story ?? '')
 
   function simulateScenarioDetection(scenario: SampleScenario) {
     setIsAnalyzing(true)
@@ -123,23 +126,32 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
     setTitle('')
     setCategory('')
     setDescription('')
+    setStory('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }
 
+  const isStoryTooLong = story.length > 280
+
   function handleSubmit() {
-    if (!photoUrl || !title.trim() || !category) return
+    if (!photoUrl || !title.trim() || !category || isStoryTooLong) return
     onContinue?.({
       photoUrl,
       title: title.trim(),
       category,
       description: description.trim(),
+      story: story.trim() || undefined,
     })
   }
 
   const isComplete =
-    hasData && !isAnalyzing && Boolean(photoUrl) && title.trim().length > 0 && category !== ''
+    hasData &&
+    !isAnalyzing &&
+    Boolean(photoUrl) &&
+    title.trim().length > 0 &&
+    category !== '' &&
+    !isStoryTooLong
 
   return (
     <Card className="w-full">
@@ -360,6 +372,36 @@ export function StepPhotoAi({ initialData, onContinue }: StepPhotoAiProps) {
                 <FieldDescription>
                   Visible para cualquier persona. No incluyas detalles secretos de comprobación aquí.
                 </FieldDescription>
+              </Field>
+
+              <Field data-invalid={isStoryTooLong}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="item-story">La historia del hallazgo (opcional)</FieldLabel>
+                  <span
+                    className={cn(
+                      'text-xs',
+                      isStoryTooLong ? 'font-medium text-destructive' : 'text-muted-foreground'
+                    )}
+                  >
+                    {story.length}/280
+                  </span>
+                </div>
+                <Textarea
+                  id="item-story"
+                  rows={3}
+                  value={story}
+                  onChange={(e) => setStory(e.target.value)}
+                  placeholder="Ej.: Manojo de llaves abandonado que algún día abrió la puerta de tus sueños…"
+                  aria-invalid={isStoryTooLong}
+                />
+                <FieldDescription>
+                  Dale tu toque: cuéntalo con humor o con fantasía. Ojo: no incluyas el detalle secreto que usaremos para comprobar quién es el dueño.
+                </FieldDescription>
+                {isStoryTooLong ? (
+                  <FieldError>
+                    La historia no puede superar los 280 caracteres.
+                  </FieldError>
+                ) : null}
               </Field>
             </FieldGroup>
           </div>
