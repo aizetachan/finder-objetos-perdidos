@@ -8,10 +8,15 @@ export interface User {
   createdAt: string // fecha en formato ISO, p. ej. "2026-09-17T10:00:00.000Z"
 }
 
+export type IdentityStatus = 'none' | 'pending' | 'verified' | 'rejected'
+
 // La persona que tiene la sesión iniciada. No es una colección: lo da el sistema de cuentas.
 export interface AuthUser {
   id: string
   email: string
   displayName: string
   photoURL?: string
+  emailVerified: boolean
+  identityStatus: IdentityStatus
+  isGuest: boolean
 }
