@@ -27,14 +27,15 @@ function recentDate(daysAgo: number, hoursAgo = 0): string {
 
 export const seed: SeedData = {
   accounts: [
-    { id: 'user-lucia', email: 'lucia@example.com', displayName: 'Lucía Martín' },
-    { id: 'user-carlos', email: 'carlos@example.com', displayName: 'Carlos Ruiz' },
-    { id: 'user-aina', email: 'aina@example.com', displayName: 'Aina Ferrer' },
-    { id: 'user-mikel', email: 'mikel@example.com', displayName: 'Mikel Etxeberria' },
-    { id: 'user-mateo', email: 'mateo@example.com', displayName: 'Mateo Santos' },
-    { id: 'user-carmen', email: 'carmen@example.com', displayName: 'Carmen Ramos' },
-    { id: 'user-diego', email: 'diego@example.com', displayName: 'Diego Navarro' },
-    { id: 'user-sara', email: 'sara@example.com', displayName: 'Sara Gil' },
+    { id: 'user-lucia', email: 'lucia@example.com', displayName: 'Lucía Martín', emailVerified: true, identityStatus: 'verified', isGuest: false },
+    { id: 'user-carlos', email: 'carlos@example.com', displayName: 'Carlos Ruiz', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-aina', email: 'aina@example.com', displayName: 'Aina Ferrer', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-mikel', email: 'mikel@example.com', displayName: 'Mikel Etxeberria', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-mateo', email: 'mateo@example.com', displayName: 'Mateo Santos', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-carmen', email: 'carmen@example.com', displayName: 'Carmen Ramos', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-diego', email: 'diego@example.com', displayName: 'Diego Navarro', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-sara', email: 'sara@example.com', displayName: 'Sara Gil', emailVerified: true, identityStatus: 'none', isGuest: false },
+    { id: 'user-nuevo', email: 'nuevo@example.com', displayName: 'Pablo Nuevo', emailVerified: false, identityStatus: 'none', isGuest: false },
   ],
   users: [
     { id: 'user-lucia', displayName: 'Lucía Martín', city: 'Madrid', createdAt: '2026-08-01T09:00:00.000Z' },
@@ -45,6 +46,7 @@ export const seed: SeedData = {
     { id: 'user-carmen', displayName: 'Carmen Ramos', city: 'Zaragoza', createdAt: '2026-08-20T09:00:00.000Z' },
     { id: 'user-diego', displayName: 'Diego Navarro', city: 'León', createdAt: '2026-08-22T09:00:00.000Z' },
     { id: 'user-sara', displayName: 'Sara Gil', city: 'Oviedo', createdAt: '2026-08-25T09:00:00.000Z' },
+    { id: 'user-nuevo', displayName: 'Pablo Nuevo', city: 'Madrid', createdAt: '2026-10-01T10:00:00.000Z' },
   ],
   items: [
     // 1. CARTERAS Y BOLSOS - Madrid (< 24h)

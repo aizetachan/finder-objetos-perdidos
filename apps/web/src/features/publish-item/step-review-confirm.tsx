@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
   Check,
@@ -13,13 +15,15 @@ import {
   RotateCcw,
   Send,
   ShieldCheck,
+  UserCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { getCategoryLabel } from '@finder/shared'
+import { getCategoryLabel, type Item, type NewItemInput } from '@finder/shared'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +43,10 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/hooks/use-auth'
 import { paths } from '@/routes/paths'
+import { services } from '@/services'
+import { ServiceError } from '@/services/types'
 import type { StepLocationDateData } from './step-location-date'
 import type { StepPhotoAiData } from './step-photo-ai'
 import type { StepSecurityLogisticsData } from './step-security-logistics'
@@ -79,7 +86,48 @@ export interface StepReviewConfirmProps {
   step3Data: StepSecurityLogisticsData | null
   initialEmail?: string
   onBack: (currentEmail?: string) => void
+  onGoToStep?: (step: number) => void
   onReset: () => void
+}
+
+interface StepValidationError {
+  step: number
+  message: string
+}
+
+function checkStepData(
+  step1: StepPhotoAiData | null,
+  step2: StepLocationDateData | null,
+  step3: StepSecurityLogisticsData | null,
+): StepValidationError | null {
+  if (!step1 || !step1.title?.trim() || !step1.category) {
+    return {
+      step: 1,
+      message: 'Falta información en el paso 1: debes indicar el título y la categoría del objeto.',
+    }
+  }
+
+  const hasLocation =
+    Boolean(step2?.city?.trim()) &&
+    Boolean(step2?.locationText?.trim() || step2?.address?.trim())
+  const rawDate = step2?.date || step2?.foundDate
+  const hasValidDate = Boolean(rawDate && !isNaN(new Date(rawDate).getTime()))
+
+  if (!step2 || !hasLocation || !hasValidDate) {
+    return {
+      step: 2,
+      message: 'Falta información en el paso 2: debes indicar la ciudad, la ubicación y la fecha del hallazgo.',
+    }
+  }
+
+  if (!step3 || !step3.hiddenDetails?.trim()) {
+    return {
+      step: 3,
+      message: 'Falta información en el paso 3: el detalle protegido contra fraude es obligatorio para poder publicar.',
+    }
+  }
+
+  return null
 }
 
 export function StepReviewConfirm({
@@ -88,12 +136,19 @@ export function StepReviewConfirm({
   step3Data,
   initialEmail = '',
   onBack,
+  onGoToStep,
   onReset,
 }: StepReviewConfirmProps) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [createdItem, setCreatedItem] = useState<Item | null>(null)
   const [isCopied, setIsCopied] = useState(false)
-  const [submittedEmail, setSubmittedEmail] = useState(initialEmail)
+  const [emailSent, setEmailSent] = useState(false)
+  const [pendingGuestEmail, setPendingGuestEmail] = useState(initialEmail)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [stepError, setStepError] = useState<StepValidationError | null>(null)
 
   const {
     register,
@@ -103,43 +158,98 @@ export function StepReviewConfirm({
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: initialEmail,
+      email: initialEmail || (user?.email ?? ''),
     },
   })
 
-  function onSubmit(values: FormValues) {
+  // Publicar directamente con el usuario actual en sesión
+  async function handlePublishWithUser() {
+    setSubmitError(null)
+    const validationError = checkStepData(step1Data, step2Data, step3Data)
+    if (validationError) {
+      setStepError(validationError)
+      return
+    }
+    setStepError(null)
     setIsSubmitting(true)
-    setSubmittedEmail(values.email)
 
-    setTimeout(() => {
+    const dateIso = new Date(step2Data!.date || step2Data!.foundDate!).toISOString()
+    const payload: NewItemInput = {
+      type: 'found',
+      title: step1Data!.title.trim(),
+      description: step1Data!.description?.trim() || '',
+      category: step1Data!.category,
+      photos: step1Data!.photoUrl ? [step1Data!.photoUrl] : [],
+      city: step2Data!.city.trim(),
+      locationText: (step2Data!.locationText || step2Data!.address || step2Data!.city).trim(),
+      date: dateIso,
+      hiddenDetails: step3Data!.hiddenDetails.trim(),
+    }
+
+    try {
+      const item = await services.createItem(payload)
+      setCreatedItem(item)
+      await queryClient.invalidateQueries({ queryKey: ['items'] })
+      await queryClient.invalidateQueries({ queryKey: ['myItems'] })
+      toast.success('¡Objeto publicado con éxito!')
+    } catch (err) {
+      if (err instanceof ServiceError) {
+        setSubmitError(err.message)
+      } else {
+        setSubmitError('No se pudo publicar el objeto. Revisa tu conexión y vuelve a intentarlo.')
+      }
+    } finally {
       setIsSubmitting(false)
-      setIsSuccess(true)
-    }, 1000)
+    }
+  }
+
+  // Usuario no autenticado: enviar enlace de confirmación
+  async function onSubmitGuest(values: FormValues) {
+    setSubmitError(null)
+    const validationError = checkStepData(step1Data, step2Data, step3Data)
+    if (validationError) {
+      setStepError(validationError)
+      return
+    }
+    setStepError(null)
+    setIsSubmitting(true)
+    setPendingGuestEmail(values.email)
+
+    try {
+      await services.startGuestPublish(values.email)
+      setEmailSent(true)
+      toast.success('Enlace de confirmación enviado')
+    } catch (err) {
+      if (err instanceof ServiceError) {
+        setSubmitError(err.message)
+      } else {
+        setSubmitError('No se pudo enviar el enlace. Revisa tu conexión y vuelve a intentarlo.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   async function handleCopyLink() {
+    if (!createdItem) return
     const trackingUrl =
       typeof window !== 'undefined'
-        ? `${window.location.origin}/seguimiento/FND-8492`
-        : 'https://finder.app/seguimiento/FND-8492'
+        ? `${window.location.origin}${paths.itemDetail(createdItem.id)}`
+        : paths.itemDetail(createdItem.id)
 
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(trackingUrl)
       }
     } catch {
-      // Si el portapapeles no está disponible en el entorno
+      // Ignorar si el portapapeles no está disponible
     }
 
     setIsCopied(true)
-    toast.success('¡Enlace de seguimiento copiado al portapapeles!')
+    toast.success('¡Enlace del objeto copiado al portapapeles!')
     setTimeout(() => {
       setIsCopied(false)
     }, 2000)
-  }
-
-  function handleOpenTracking() {
-    toast.info('Simulación: Abriendo panel de gestión y seguimiento (#FND-8492)')
   }
 
   const deliveryInfo = step3Data?.deliveryMethod
@@ -150,7 +260,7 @@ export function StepReviewConfirm({
     : { emoji: '📍', label: 'No seleccionado' }
 
   // Pantalla de Éxito / Feedback final
-  if (isSuccess) {
+  if (createdItem) {
     return (
       <Card className="w-full text-center py-6 sm:py-8 border bg-card">
         <CardContent className="space-y-6 flex flex-col items-center">
@@ -182,18 +292,17 @@ export function StepReviewConfirm({
 
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Código de seguimiento
+                Identificador de publicación
               </p>
               <div className="flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={handleOpenTracking}
+                <Link
+                  to={paths.itemDetail(createdItem.id)}
                   className="group inline-flex items-center gap-1.5 font-mono text-2xl font-bold text-primary hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-2 py-0.5 transition-all"
-                  title="Abrir panel de seguimiento del objeto"
+                  title="Abrir ficha del objeto"
                 >
-                  <span>#FND-8492</span>
+                  <span>#{createdItem.id}</span>
                   <ExternalLink className="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -214,7 +323,7 @@ export function StepReviewConfirm({
                 ) : (
                   <>
                     <Copy className="size-3.5 text-muted-foreground" />
-                    Copiar enlace de seguimiento
+                    Copiar enlace de publicación
                   </>
                 )}
               </Button>
@@ -222,22 +331,16 @@ export function StepReviewConfirm({
 
             {/* Microcopy bajo el código */}
             <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-              Hemos enviado este mismo enlace directo a tu correo. Úsalo para comprobar el estado o
-              editar la publicación en cualquier momento.
+              Hemos asociado este hallazgo a tu correo:{' '}
+              <span className="font-medium text-foreground">{user?.email}</span>.
+              Úsalo para comprobar el estado o resolver reclamaciones en cualquier momento.
             </p>
-
-            {submittedEmail ? (
-              <p className="text-[11px] text-muted-foreground/80 border-t border-border/50 pt-2.5">
-                Avisos configurados para:{' '}
-                <span className="font-medium text-foreground">{submittedEmail}</span>
-              </p>
-            ) : null}
           </div>
 
           {/* Acciones finales */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-sm pt-2">
             <Button asChild className="w-full sm:w-auto flex-1 gap-2">
-              <Link to={paths.home}>Ver en el catálogo de objetos</Link>
+              <Link to={paths.itemDetail(createdItem.id)}>Ver publicación</Link>
             </Button>
             <Button
               type="button"
@@ -255,21 +358,50 @@ export function StepReviewConfirm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
+    <div className="space-y-6 w-full">
       <Card className="w-full border bg-card">
         {/* 1. Cabecera del paso */}
         <CardHeader>
           <CardTitle>Revisa los datos antes de publicar</CardTitle>
           <CardDescription>
-            Comprueba que la información sea correcta. Podrás editarla más adelante si lo
-            necesitas.
+            Comprueba que la información sea correcta. Podrás editarla más adelante si lo necesitas.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* 2. Tarjeta resumen del objeto (Vista previa pública vs. privada) */}
+          {stepError ? (
+            <Alert variant="destructive" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <div>
+                  <AlertTitle>Falta información en el paso {stepError.step}</AlertTitle>
+                  <AlertDescription className="text-xs sm:text-sm">
+                    {stepError.message}
+                  </AlertDescription>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 bg-background text-foreground self-start sm:self-center"
+                onClick={() => (onGoToStep ? onGoToStep(stepError.step) : onBack())}
+              >
+                Ir al paso {stepError.step}
+              </Button>
+            </Alert>
+          ) : null}
+
+          {submitError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" />
+              <AlertTitle>No se pudo completar</AlertTitle>
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {/* 2. Tarjeta resumen del objeto */}
           <div className="rounded-lg border bg-muted/20 p-4 sm:p-5 space-y-5">
-            {/* Cabecera de la ficha: miniatura, título y Badge categoría */}
             <div className="flex items-start gap-4">
               <div className="relative size-20 sm:size-24 shrink-0 overflow-hidden rounded-md border bg-muted flex items-center justify-center">
                 {step1Data?.photoUrl ? (
@@ -303,7 +435,7 @@ export function StepReviewConfirm({
 
             <Separator />
 
-            {/* Bloque de Ubicación y Fecha */}
+            {/* Ubicación y Fecha */}
             <div className="flex items-start gap-3 text-sm">
               <MapPin className="size-4 text-primary shrink-0 mt-0.5" />
               <div className="space-y-1 min-w-0 flex-1">
@@ -328,7 +460,7 @@ export function StepReviewConfirm({
 
             <Separator />
 
-            {/* Bloque de Entrega */}
+            {/* Entrega */}
             <div className="flex items-start gap-3 text-sm">
               <span className="text-xl select-none leading-none mt-0.5">
                 {deliveryInfo.emoji}
@@ -341,7 +473,7 @@ export function StepReviewConfirm({
 
             <Separator />
 
-            {/* Bloque de Seguridad (Detalle confidencial) */}
+            {/* Seguridad (Detalle confidencial) */}
             <div className="rounded-lg border border-dashed border-border bg-muted/40 p-3.5 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
@@ -365,46 +497,115 @@ export function StepReviewConfirm({
             </div>
           </div>
 
-          {/* 3. Bloque de Contacto (Lazy Registration) */}
-          <Card className="border bg-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                  <Mail className="size-4" />
+          {/* 3. Bloque de Contacto / Sesión */}
+          {user ? (
+            <Card className="border bg-card">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                    <UserCheck className="size-4" />
+                  </div>
+                  <CardTitle className="text-base font-semibold">
+                    Publicando con tu cuenta
+                  </CardTitle>
                 </div>
-                <CardTitle className="text-base font-semibold">
-                  ¿Dónde te avisamos si el dueño lo reclama?
-                </CardTitle>
-              </div>
-              <CardDescription className="text-xs pt-1">
-                No necesitas contraseña ahora. Solo utilizaremos este correo para notificarte cuando
-                alguien verifique el detalle oculto.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field data-invalid={Boolean(errors.email)}>
-                  <FieldLabel htmlFor="contact-email">Correo electrónico de contacto</FieldLabel>
-                  <Input
-                    id="contact-email"
-                    type="email"
-                    placeholder="tu-correo@ejemplo.com"
-                    autoComplete="email"
-                    aria-invalid={Boolean(errors.email)}
-                    {...register('email')}
-                  />
-                  {errors.email ? (
-                    <FieldError>{errors.email.message}</FieldError>
-                  ) : (
-                    <FieldDescription>
-                      Te enviaremos un enlace seguro para gestionar la entrega cuando se verifique
-                      un reclamo.
-                    </FieldDescription>
-                  )}
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+                <CardDescription className="text-xs pt-1">
+                  El objeto quedará registrado a nombre de tu perfil para notificarte cualquier reclamación.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3.5 py-2.5 text-sm">
+                  <div>
+                    <p className="font-medium text-foreground">{user.displayName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  {user.isGuest ? (
+                    <Badge variant="secondary" className="text-xs">
+                      Cuenta temporal
+                    </Badge>
+                  ) : null}
+                </div>
+                {user.isGuest ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Podrás completar tu registro y establecer una contraseña más adelante si alguien reclama este objeto.
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : emailSent ? (
+            <Card className="border bg-primary/5 border-primary/20">
+              <CardHeader className="pb-3 text-center sm:text-left">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                    <Mail className="size-4" />
+                  </div>
+                  <CardTitle className="text-base font-semibold">
+                    Revisa tu correo para confirmar
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs pt-1">
+                  Hemos enviado un enlace a <span className="font-semibold text-foreground">{pendingGuestEmail}</span>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Pulsa en el enlace del correo para confirmar que la dirección es correcta. Al hacerlo, tu publicación se completará automáticamente.
+                </p>
+
+                <div className="rounded-md border bg-background/80 p-3 space-y-2 text-xs">
+                  <p className="font-medium text-foreground">💡 ¿Probando con datos de ejemplo?</p>
+                  <p className="text-muted-foreground">
+                    Abre el <strong>Simulador de casos</strong> en la cabecera o haz clic en el siguiente acceso rápido:
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto text-xs">
+                    <Link to={`${paths.confirmGuestEmail}?code=demo-guest`}>
+                      Simular abrir el enlace de confirmar publicación
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border bg-card">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                    <Mail className="size-4" />
+                  </div>
+                  <CardTitle className="text-base font-semibold">
+                    ¿Dónde te avisamos si el dueño lo reclama?
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs pt-1">
+                  No necesitas contraseña ahora. Te enviaremos un enlace de confirmación antes de publicar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form id="guest-email-form" onSubmit={handleSubmit(onSubmitGuest)}>
+                  <FieldGroup>
+                    <Field data-invalid={Boolean(errors.email)}>
+                      <FieldLabel htmlFor="contact-email">Correo electrónico de contacto</FieldLabel>
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="tu-correo@ejemplo.com"
+                        autoComplete="email"
+                        aria-invalid={Boolean(errors.email)}
+                        {...register('email')}
+                      />
+                      {errors.email ? (
+                        <FieldError>{errors.email.message}</FieldError>
+                      ) : (
+                        <FieldDescription>
+                          Te enviaremos un enlace de un solo clic para confirmar tu publicación.
+                        </FieldDescription>
+                      )}
+                    </Field>
+                  </FieldGroup>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </CardContent>
 
         {/* 4. Acción principal y navegación */}
@@ -420,21 +621,57 @@ export function StepReviewConfirm({
             Atrás
           </Button>
 
-          <Button type="submit" disabled={isSubmitting} className="gap-2">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Publicando...
-              </>
-            ) : (
-              <>
-                <Send className="size-4" />
-                Publicar objeto encontrado
-              </>
-            )}
-          </Button>
+          {user ? (
+            <Button
+              type="button"
+              onClick={() => void handlePublishWithUser()}
+              disabled={isSubmitting}
+              className="gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Send className="size-4" />
+                  Publicar objeto encontrado
+                </>
+              )}
+            </Button>
+          ) : !emailSent ? (
+            <Button
+              type="submit"
+              form="guest-email-form"
+              disabled={isSubmitting}
+              className="gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Enviando enlace...
+                </>
+              ) : (
+                <>
+                  <Mail className="size-4" />
+                  Confirmar email para publicar
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEmailSent(false)}
+              className="gap-2"
+            >
+              <RotateCcw className="size-4" />
+              Cambiar correo
+            </Button>
+          )}
         </CardFooter>
       </Card>
-    </form>
+    </div>
   )
 }

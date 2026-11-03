@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   Clock,
@@ -11,9 +12,9 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { toast } from 'sonner'
-import { Alert, AlertAction, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,13 +27,18 @@ import {
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ItemCard } from '@/features/search/item-card'
+import { useAuth } from '@/hooks/use-auth'
 import { formatDate } from '@/lib/format'
 import { paths } from '@/routes/paths'
 import { useClaimsOnMyItems, useResolveClaim } from './use-claims-on-my-items'
 import { useMyItems } from './use-my-items'
 
 export function MyItemsPage() {
-  const [activeTab, setActiveTab] = useState<'items' | 'received-claims'>('items')
+  const location = useLocation()
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<'items' | 'received-claims'>(() => {
+    return location.state?.tab === 'claims' ? 'received-claims' : 'items'
+  })
   const { data: items, isLoading: loadingItems, isError: errorItems, refetch: refetchItems } = useMyItems()
   const {
     data: receivedClaims,
@@ -178,6 +184,27 @@ export function MyItemsPage() {
       {/* PESTAÑA 2: Reclamaciones Recibidas (Alguien reclama un objeto que yo publiqué) */}
       {activeTab === 'received-claims' && (
         <>
+          {user?.isGuest && (
+            <Alert className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-primary/20 bg-primary/5">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="size-4 shrink-0 text-primary mt-0.5" />
+                <div>
+                  <AlertTitle className="text-foreground font-semibold">
+                    Completa tu cuenta para responder a las reclamaciones
+                  </AlertTitle>
+                  <AlertDescription className="text-xs sm:text-sm text-muted-foreground">
+                    Publicaste este objeto como invitado. Para aceptar o rechazar solicitudes necesitas crear una contraseña.
+                  </AlertDescription>
+                </div>
+              </div>
+              <Button asChild size="sm" className="shrink-0 self-start sm:self-center">
+                <Link to={`${paths.completeAccount}?volver=${encodeURIComponent('/mis-publicaciones')}`}>
+                  Completar cuenta
+                </Link>
+              </Button>
+            </Alert>
+          )}
+
           {loadingClaims && (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, idx) => (
@@ -271,18 +298,20 @@ export function MyItemsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={resolveClaimMutation.isPending}
+                          disabled={user?.isGuest || resolveClaimMutation.isPending}
                           onClick={() => handleResolve(claim.id, 'rejected')}
                           className="text-destructive hover:bg-destructive/10"
+                          title={user?.isGuest ? 'Completa tu cuenta para responder' : undefined}
                         >
                           <XCircle className="mr-1.5 h-4 w-4" />
                           Rechazar reclamación
                         </Button>
                         <Button
                           size="sm"
-                          disabled={resolveClaimMutation.isPending}
+                          disabled={user?.isGuest || resolveClaimMutation.isPending}
                           onClick={() => handleResolve(claim.id, 'accepted')}
                           className="font-semibold"
+                          title={user?.isGuest ? 'Completa tu cuenta para responder' : undefined}
                         >
                           <CheckCircle2 className="mr-1.5 h-4 w-4" />
                           Aceptar y confirmar propiedad
