@@ -301,6 +301,16 @@ export function StepReviewConfirm({
               </div>
             </div>
 
+            {step1Data?.story ? (
+              <>
+                <Separator />
+                <div className="space-y-1 text-sm">
+                  <p className="text-xs font-medium text-muted-foreground">Tu historia</p>
+                  <p className="italic text-foreground">"{step1Data.story}"</p>
+                </div>
+              </>
+            ) : null}
+
             <Separator />
 
             {/* Bloque de Ubicación y Fecha */}
