@@ -144,22 +144,43 @@ export function ItemDetailPage() {
               )}
             </div>
 
-            {/* Tarjeta de Seguridad y Detalles Ocultos */}
+            {/* Tarjeta de Seguridad y Verificación */}
             <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
                   <ShieldCheck className="h-4 w-4" />
-                  Sistema de Verificación por Detalle Oculto
+                  Cómo protegemos este objeto
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-xs text-muted-foreground">
-                <p>
-                  Para proteger este objeto de reclamaciones falsas, la persona que lo encontró ha
-                  registrado una característica o detalle privado (un grabado, contenido interno o marca secreta).
-                </p>
-                <div className="flex items-center gap-1.5 font-medium text-foreground">
-                  <Lock className="h-3.5 w-3.5 text-primary" />
-                  Al pulsar en "¡Es mío!", deberás describir ese detalle para verificar tu identidad.
+              <CardContent className="space-y-3 text-xs">
+                <ol className="space-y-2.5">
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      1
+                    </span>
+                    <span className="text-muted-foreground">
+                      Quien lo encontró guardó un detalle secreto que solo el dueño conoce. No aparece en las fotos ni en el texto.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      2
+                    </span>
+                    <span className="text-muted-foreground">
+                      Al reclamarlo, tendrás que describir ese detalle. Antes te pediremos verificar tu identidad.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      3
+                    </span>
+                    <span className="text-muted-foreground">
+                      Si coincide, quien lo encontró acepta la reclamación y os ponemos en contacto para la devolución.
+                    </span>
+                  </li>
+                </ol>
+                <div className="border-t border-primary/10 pt-2 text-xs text-muted-foreground">
+                  Nunca mostramos el detalle secreto públicamente.
                 </div>
               </CardContent>
             </Card>
@@ -201,14 +222,31 @@ export function ItemDetailPage() {
                 </div>
               </div>
 
-              {/* Historia y Descripción Narrativa */}
+              {/* Historia del hallazgo (opcional) */}
+              {item.story ? (
+                <div className="space-y-2">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    La historia de este hallazgo
+                  </h2>
+                  <div className="rounded-xl border bg-card p-4 space-y-2">
+                    <blockquote className="border-l-2 border-primary/40 pl-3 italic text-foreground text-sm leading-relaxed">
+                      "{item.story}"
+                    </blockquote>
+                    <p className="text-xs text-muted-foreground pl-3">
+                      Contada por {item.createdByName}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Descripción */}
               <div className="space-y-2">
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  Historia del hallazgo
+                <h2 className="text-sm font-semibold text-foreground">
+                  Descripción
                 </h2>
-                <div className="rounded-xl border bg-card p-4 text-sm leading-relaxed text-muted-foreground">
-                  <p className="italic text-foreground">"{item.description}"</p>
+                <div className="rounded-xl border bg-card p-4 text-sm leading-relaxed text-foreground">
+                  <p>{item.description}</p>
                 </div>
               </div>
             </div>
