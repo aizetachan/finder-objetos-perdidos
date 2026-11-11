@@ -6,6 +6,9 @@ import { MyClaimsPage } from '@/features/account/my-claims-page'
 import { MyItemsPage } from '@/features/account/my-items-page'
 import { ProfilePage } from '@/features/account/profile-page'
 import { RegisterPage } from '@/features/account/register-page'
+import { ChatRoomPage } from '@/features/chat/chat-room-page'
+import { ClaimDiscardedPage } from '@/features/claims/claim-discarded-page'
+import { ClaimReviewPage } from '@/features/claims/claim-review-page'
 import { ExamplePage } from '@/features/example/example-page'
 import { ClaimItemPage } from '@/features/item-detail/claim-item-page'
 import { ItemDetailPage } from '@/features/item-detail/item-detail-page'
@@ -32,6 +35,9 @@ export const router = createBrowserRouter([
       { path: paths.items, element: <SearchPage /> },
       { path: paths.itemDetail(':id'), element: <ItemDetailPage /> },
       { path: paths.itemClaim(':id'), element: <RequireAuth><ClaimItemPage /></RequireAuth> },
+      { path: paths.claimDiscarded, element: <RequireAuth><ClaimDiscardedPage /></RequireAuth> },
+      { path: paths.claimReview(':id'), element: <RequireAuth><ClaimReviewPage /></RequireAuth> },
+      { path: paths.claimChat(':id'), element: <RequireAuth><ChatRoomPage /></RequireAuth> },
       { path: paths.publish, element: <RequireAuth><PublishItemPage /></RequireAuth> },
       { path: paths.login, element: <LoginPage /> },
       { path: paths.register, element: <RegisterPage /> },
