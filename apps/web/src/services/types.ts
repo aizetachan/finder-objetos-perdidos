@@ -2,10 +2,15 @@ import type {
   AuthUser,
   Claim,
   ClaimStatus,
+  Donation,
+  DonationFilters,
+  DonationRequest,
   IdentityStatus,
   Item,
   ItemFilters,
   NewClaimInput,
+  NewDonationInput,
+  NewDonationRequestInput,
   NewItemInput,
   User,
 } from '@finder/shared'
@@ -57,6 +62,26 @@ export interface Services {
   getClaimsOnMyItems(): Promise<Claim[]>
   resolveClaim(claimId: string, status: Exclude<ClaimStatus, 'pending'>): Promise<void>
   cancelClaim(claimId: string): Promise<void>
+
+  // — Donaciones (definición en docs/PRODUCTO.md, punto 5) —
+  /** Catálogo: solo las donaciones disponibles. */
+  getDonations(filters?: DonationFilters): Promise<Donation[]>
+  getDonation(id: string): Promise<Donation | null>
+  getMyDonations(): Promise<Donation[]>
+  createDonation(input: NewDonationInput): Promise<Donation>
+  /** Quien dona confirma que ya la ha entregado: reservada → donada. */
+  markDonationDelivered(donationId: string): Promise<void>
+  /** Si la entrega no sale: vuelve a estar disponible y las solicitudes vuelven a pendientes. */
+  reopenDonation(donationId: string): Promise<void>
+
+  // — Solicitudes de donación —
+  /** Solicitar no reserva el objeto: puede haber varias solicitudes a la vez. */
+  createDonationRequest(input: NewDonationRequestInput): Promise<DonationRequest>
+  getMyDonationRequests(): Promise<DonationRequest[]>
+  getRequestsOnMyDonations(): Promise<DonationRequest[]>
+  /** Quien dona ELIGE: esa solicitud queda aceptada, las demás no seleccionadas y la donación reservada. */
+  acceptDonationRequest(requestId: string): Promise<void>
+  cancelDonationRequest(requestId: string): Promise<void>
 }
 
 // Error con un mensaje pensado para enseñárselo a la persona tal cual.

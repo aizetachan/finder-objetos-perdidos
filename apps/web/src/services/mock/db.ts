@@ -3,8 +3,8 @@ import { seed, type SeedData } from '@finder/shared'
 // "Base de datos" de ejemplo: vive en el navegador (localStorage), así lo que se crea
 // sigue ahí al recargar. Arranca con los datos de packages/shared/src/seed/seed.ts.
 
-const DB_KEY = 'finder:mock-db:v8'
-const SESSION_KEY = 'finder:mock-session:v8'
+const DB_KEY = 'finder:mock-db:v9'
+const SESSION_KEY = 'finder:mock-session:v9'
 
 export type MockDb = SeedData
 

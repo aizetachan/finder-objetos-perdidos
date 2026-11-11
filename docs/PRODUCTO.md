@@ -187,8 +187,35 @@ Objeto encontrado publicado → Transcurre el periodo obligatorio buscando dueñ
 
 Los nombres de campos van en inglés (convención de código). Un archivo por colección en `packages/shared/src/types/`.
 
-> **Propuesta de modelo conceptual para Donaciones:**
-> Los campos y estados técnicos asociados a Donaciones en `items` (como `donationOrigin`, `condition`, `deliveryNotes`, y los estados `available`, `reserved`, `donated`) así como la entidad `donationRequests` descritos a continuación son una **propuesta de modelo conceptual** para orientar la futura implementación técnica. No constituyen una arquitectura técnica cerrada ni aprobada todavía por el equipo/Lead.
+> **Donaciones — modelo decidido (2026-11-11):** las donaciones van en **colecciones propias**, `donations` y `donationRequests`, separadas de `items`. Los tipos están en `packages/shared/src/types/donation.ts`. Las menciones a donaciones dentro de la tabla de `items` de más abajo quedan como propuesta antigua: **manda lo que dice este recuadro**.
+
+### Donaciones: datos de ejemplo ya disponibles
+
+Para construir las pantallas de Donaciones ya hay una base de datos de ejemplo:
+
+- **Datos:** 12 donaciones de varias ciudades, categorías y estados, y 7 solicitudes. Están en `packages/shared/src/seed/seed.ts`.
+- **Para probar:** entra como **Lucía** (dona una raqueta con dos solicitudes por decidir, tiene una lámpara ya reservada y ha enviado dos solicitudes) o como **Carlos** (dona una mochila que Lucía ha solicitado).
+- **Estados de la donación:** `available` (disponible) → `reserved` (reservada) → `donated` (donada).
+- **Estado físico:** `like_new`, `good`, `used_functional`. Sus textos en español se obtienen con `getDonationConditionLabel`.
+- **Estados de la solicitud:** `pending` → `accepted` o `not_selected`.
+
+Operaciones disponibles en `services` (funcionan con datos de ejemplo):
+
+| Operación | Para qué |
+|---|---|
+| `getDonations(filtros)` | Catálogo de donaciones disponibles, con filtros por categoría y ciudad |
+| `getDonation(id)` | Una donación |
+| `getMyDonations()` | Las que he publicado yo |
+| `createDonation(datos)` | Publicar una donación |
+| `createDonationRequest({ donationId, message })` | Solicitar una donación |
+| `getMyDonationRequests()` | Las solicitudes que he enviado |
+| `getRequestsOnMyDonations()` | Las solicitudes que he recibido |
+| `acceptDonationRequest(id)` | Elegir a una persona: la donación queda reservada y el resto de solicitudes, no seleccionadas |
+| `cancelDonationRequest(id)` | Retirar una solicitud pendiente |
+| `markDonationDelivered(id)` | Marcar como donada una donación reservada |
+| `reopenDonation(id)` | Volver a ofrecerla si la entrega no sale |
+
+Convertir un objeto encontrado en donación todavía no tiene operación: depende de decisiones abiertas (punto 11).
 
 ### `users` — perfil público de las personas con cuenta
 
