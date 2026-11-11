@@ -28,11 +28,13 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/format'
 import { paths } from '@/routes/paths'
+import { useAuth } from '@/hooks/use-auth'
 import { useItemDetail } from './use-item-detail'
 
 export function ItemDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   const { data: item, isLoading, isError, error, refetch } = useItemDetail(id)
+  const { user } = useAuth()
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 py-6">
@@ -214,12 +216,28 @@ export function ItemDetailPage() {
             {/* Acción de Reclamar */}
             <div className="space-y-3 pt-4 border-t">
               {item.status === 'published' ? (
-                <Button asChild size="lg" className="w-full font-semibold shadow-md">
-                  <Link to={paths.itemClaim(item.id)}>
-                    <Handshake className="mr-2 h-5 w-5" />
-                    ¡Es mío! Reclamar objeto
-                  </Link>
-                </Button>
+                item.createdBy === user?.id ? (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center space-y-2">
+                    <p className="text-sm font-medium text-foreground">Este objeto lo publicaste tú</p>
+                    <Button asChild variant="outline" size="sm" className="w-full">
+                      <Link to={paths.myItems}>Ver mis publicaciones</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="w-full font-semibold shadow-md">
+                      <Link to={paths.itemClaim(item.id)}>
+                        <Handshake className="mr-2 h-5 w-5" />
+                        ¡Es mío! Reclamar objeto
+                      </Link>
+                    </Button>
+                    {user && user.identityStatus !== 'verified' && (
+                      <p className="text-center text-xs font-medium text-muted-foreground">
+                        Te pediremos verificar tu identidad antes de reclamar.
+                      </p>
+                    )}
+                  </>
+                )
               ) : (
                 <Button disabled size="lg" variant="secondary" className="w-full">
                   <Lock className="mr-2 h-4 w-4" />

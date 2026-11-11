@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  Clock,
   Handshake,
   LogOut,
   Mail,
@@ -79,20 +80,48 @@ export function ProfilePage() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-1.5 flex-1">
+          <div className="space-y-2 flex-1">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 {currentUser.displayName}
               </h1>
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                Cuenta Verificada
-              </Badge>
+              {currentUser.emailVerified ? (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  Email verificado
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1 border-destructive/40 text-xs text-destructive">
+                  Email sin verificar
+                </Badge>
+              )}
             </div>
             <p className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground sm:justify-start">
               <Mail className="h-4 w-4" />
               {currentUser.email}
             </p>
+
+            {/* Estado de identidad verificada */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5 text-xs sm:justify-start">
+              {currentUser.identityStatus === 'verified' ? (
+                <Badge variant="secondary" className="gap-1 border-primary/20 bg-primary/10 text-primary">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  Identidad verificada
+                </Badge>
+              ) : currentUser.identityStatus === 'pending' ? (
+                <Badge variant="outline" className="gap-1 text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  Verificación en curso
+                </Badge>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>Identidad sin verificar</span>
+                  <Button asChild variant="outline" size="sm" className="h-6 px-2 text-xs">
+                    <Link to={paths.verifyIdentity}>Verificar ahora</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
           <Button variant="outline" onClick={handleSignOut} className="gap-2 text-destructive hover:bg-destructive/10">
             <LogOut className="h-4 w-4" />

@@ -1,5 +1,6 @@
 import { Menu, Plus, Search } from 'lucide-react'
 import { Link, NavLink } from 'react-router'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -9,6 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import { paths } from '@/routes/paths'
 import { AccountMenu } from './account-menu'
@@ -21,6 +23,9 @@ const navLinks = [
 ]
 
 export function Header() {
+  const { user } = useAuth()
+  const isUnverified = Boolean(user && !user.emailVerified && !user.isGuest)
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
@@ -47,6 +52,28 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {isUnverified ? (
+            <Badge
+              variant="outline"
+              asChild
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
+            >
+              <Link to={paths.verifyEmailPending} state={{ email: user?.email }}>
+                Verifica tu email
+              </Link>
+            </Badge>
+          ) : null}
+          {user?.isGuest ? (
+            <Badge
+              variant="outline"
+              asChild
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Link to={paths.completeAccount}>
+                Completar cuenta
+              </Link>
+            </Badge>
+          ) : null}
           <Button asChild className="hidden md:inline-flex">
             <Link to={paths.publish}>
               <Plus data-icon="inline-start" />
