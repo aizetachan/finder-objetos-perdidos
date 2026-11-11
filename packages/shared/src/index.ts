@@ -2,6 +2,7 @@
 // Un archivo por colección de Firestore en ./types/ y se reexporta desde aquí.
 export * from './categories'
 export * from './types/claim'
+export * from './types/donation'
 export * from './types/item'
 export * from './types/user'
 export * from './seed/placeholder'

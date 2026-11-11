@@ -376,4 +376,52 @@ export const services: Services = {
   async cancelClaim() {
     throw new Error('Pendiente de implementar')
   },
+
+  // — Donaciones y solicitudes —
+  // Pendiente para la fase 2: faltan también sus reglas en firestore.rules
+  // (colecciones `donations` y `donationRequests`). Con datos de ejemplo ya funcionan.
+
+  async getDonations() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async getDonation() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async getMyDonations() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async createDonation() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async markDonationDelivered() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async reopenDonation() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async createDonationRequest() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async getMyDonationRequests() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async getRequestsOnMyDonations() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async acceptDonationRequest() {
+    throw new Error('Pendiente de implementar')
+  },
+
+  async cancelDonationRequest() {
+    throw new Error('Pendiente de implementar')
+  },
 }

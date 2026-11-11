@@ -1,4 +1,4 @@
-import type { AuthUser, Claim, Item } from '@finder/shared'
+import type { AuthUser, Claim, Donation, DonationRequest, Item } from '@finder/shared'
 import { canClaim, canPublish, canResolveClaim } from '@/lib/permissions'
 import { ServiceError, type Services } from '../types'
 import { delay, loadDb, newId, updateDb } from './db'
@@ -629,6 +629,199 @@ export const services: Services = {
         throw new ServiceError('not-allowed', 'Solo la persona que realizó la reclamación puede me cancelar.')
       }
       db.claims.splice(index, 1)
+    })
+  },
+
+  // — Donaciones —
+
+  async getDonations(filters = {}) {
+    await delay()
+    return loadDb()
+      .donations.filter((donation) => donation.status === 'available')
+      .filter((donation) => !filters.category || donation.category === filters.category)
+      .filter((donation) => !filters.city || normalize(donation.city) === normalize(filters.city))
+      .sort(newestFirst)
+  },
+
+  async getDonation(id) {
+    await delay()
+    return loadDb().donations.find((donation) => donation.id === id) ?? null
+  },
+
+  async getMyDonations() {
+    await delay()
+    const user = requireUser()
+    return loadDb()
+      .donations.filter((donation) => donation.createdBy === user.id)
+      .sort(newestFirst)
+  },
+
+  async createDonation(input) {
+    await delay()
+    const user = requireUser()
+    const check = canPublish(user)
+    if (!check.ok) {
+      throw new ServiceError('not-allowed', 'Verifica tu email para poder publicar una donación.')
+    }
+    const now = new Date().toISOString()
+    const donation: Donation = {
+      ...input,
+      id: newId('donation'),
+      origin: 'direct',
+      status: 'available',
+      createdBy: user.id,
+      createdByName: user.displayName,
+      createdAt: now,
+      updatedAt: now,
+    }
+    updateDb((db) => {
+      db.donations.push(donation)
+    })
+    return donation
+  },
+
+  async markDonationDelivered(donationId) {
+    await delay()
+    const user = requireUser()
+    updateDb((db) => {
+      const donation = db.donations.find((d) => d.id === donationId)
+      if (!donation) throw new ServiceError('not-found', 'Esta donación ya no existe.')
+      if (donation.createdBy !== user.id) {
+        throw new ServiceError('not-allowed', 'Solo quien dona puede marcarla como entregada.')
+      }
+      if (donation.status !== 'reserved') {
+        throw new ServiceError('invalid', 'Primero tienes que elegir a quién se la das.')
+      }
+      donation.status = 'donated'
+      donation.updatedAt = new Date().toISOString()
+    })
+  },
+
+  async reopenDonation(donationId) {
+    await delay()
+    const user = requireUser()
+    updateDb((db) => {
+      const donation = db.donations.find((d) => d.id === donationId)
+      if (!donation) throw new ServiceError('not-found', 'Esta donación ya no existe.')
+      if (donation.createdBy !== user.id) {
+        throw new ServiceError('not-allowed', 'Solo quien dona puede volver a ofrecerla.')
+      }
+      if (donation.status !== 'reserved') {
+        throw new ServiceError('invalid', 'Solo se puede volver a ofrecer una donación reservada.')
+      }
+      donation.status = 'available'
+      donation.updatedAt = new Date().toISOString()
+      // La persona elegida deja de estarlo; las demás vuelven a poder ser elegidas.
+      for (const request of db.donationRequests) {
+        if (request.donationId !== donationId) continue
+        if (request.status === 'accepted') {
+          request.status = 'not_selected'
+          delete request.donorContact
+        } else if (request.status === 'not_selected') {
+          request.status = 'pending'
+          delete request.resolvedAt
+        }
+      }
+    })
+  },
+
+  // — Solicitudes de donación —
+
+  async createDonationRequest({ donationId, message }) {
+    await delay()
+    const user = requireUser()
+    return updateDb((db) => {
+      const donation = db.donations.find((d) => d.id === donationId)
+      if (!donation) throw new ServiceError('not-found', 'Esta donación ya no existe.')
+      if (donation.createdBy === user.id) {
+        throw new ServiceError('not-allowed', 'No puedes solicitar una donación que has publicado tú.')
+      }
+      if (donation.status !== 'available') {
+        throw new ServiceError('not-allowed', 'Esta donación ya no admite solicitudes.')
+      }
+      if (db.donationRequests.some((r) => r.donationId === donationId && r.requesterId === user.id)) {
+        throw new ServiceError('invalid', 'Ya has solicitado esta donación.')
+      }
+      const request: DonationRequest = {
+        id: newId('request'),
+        donationId,
+        donationTitle: donation.title,
+        donorId: donation.createdBy,
+        requesterId: user.id,
+        requesterName: user.displayName,
+        message,
+        requesterContact: { name: user.displayName, email: user.email },
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      }
+      db.donationRequests.push(request)
+      return request
+    })
+  },
+
+  async getMyDonationRequests() {
+    await delay()
+    const user = requireUser()
+    return loadDb()
+      .donationRequests.filter((request) => request.requesterId === user.id)
+      .sort(newestFirst)
+  },
+
+  async getRequestsOnMyDonations() {
+    await delay()
+    const user = requireUser()
+    return loadDb()
+      .donationRequests.filter((request) => request.donorId === user.id)
+      .sort(newestFirst)
+  },
+
+  async acceptDonationRequest(requestId) {
+    await delay()
+    const user = requireUser()
+    updateDb((db) => {
+      const request = db.donationRequests.find((r) => r.id === requestId)
+      if (!request) throw new ServiceError('not-found', 'Esta solicitud ya no existe.')
+      if (request.donorId !== user.id) {
+        throw new ServiceError('not-allowed', 'Solo quien dona puede elegir a quién se la da.')
+      }
+      if (request.status !== 'pending') {
+        throw new ServiceError('invalid', 'Esta solicitud ya está respondida.')
+      }
+      const donation = db.donations.find((d) => d.id === request.donationId)
+      if (!donation || donation.status !== 'available') {
+        throw new ServiceError('invalid', 'Esta donación ya no está disponible.')
+      }
+      const now = new Date().toISOString()
+      donation.status = 'reserved'
+      donation.updatedAt = now
+      // Quien dona elige a UNA persona: el resto queda como no seleccionada.
+      for (const other of db.donationRequests) {
+        if (other.donationId !== request.donationId || other.status !== 'pending') continue
+        other.resolvedAt = now
+        if (other.id === request.id) {
+          other.status = 'accepted'
+          other.donorContact = { name: user.displayName, email: user.email }
+        } else {
+          other.status = 'not_selected'
+        }
+      }
+    })
+  },
+
+  async cancelDonationRequest(requestId) {
+    await delay()
+    const user = requireUser()
+    updateDb((db) => {
+      const index = db.donationRequests.findIndex((r) => r.id === requestId)
+      if (index === -1) throw new ServiceError('not-found', 'Esta solicitud ya no existe.')
+      const request = db.donationRequests[index]
+      if (request.requesterId !== user.id) {
+        throw new ServiceError('not-allowed', 'Solo quien hizo la solicitud puede retirarla.')
+      }
+      if (request.status !== 'pending') {
+        throw new ServiceError('invalid', 'Solo se puede retirar una solicitud pendiente.')
+      }
+      db.donationRequests.splice(index, 1)
     })
   },
 }
