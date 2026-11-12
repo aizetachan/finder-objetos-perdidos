@@ -2,7 +2,6 @@
 // `paths.algo`, nunca el texto de la URL escrito a mano.
 export const paths = {
   home: '/',
-  homeBorja: '/home-borja',
   items: '/objetos',
   itemDetail: (id: string) => `/objetos/${id}`,
   itemClaim: (id: string) => `/objetos/${id}/reclamar`,
@@ -10,8 +9,14 @@ export const paths = {
   claimReview: (id: string) => `/reclamaciones/${id}`,
   claimChat: (id: string) => `/chat/${id}`,
   publish: '/publicar',
+  publishPrevious: '/publicar/anterior',
+  confirmGuestEmail: '/publicar/confirmar-email',
+  completeAccount: '/completar-cuenta',
   login: '/login',
   register: '/registro',
+  verifyEmailPending: '/registro/revisa-tu-email',
+  verifyEmail: '/verificar-email',
+  verifyIdentity: '/verificar-identidad',
   profile: '/perfil',
   myItems: '/mis-publicaciones',
   myClaims: '/mis-reclamaciones',

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { FlaskConical, LogOut, RotateCcw } from 'lucide-react'
+import { FlaskConical, LogOut, RotateCcw, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -20,6 +21,7 @@ import { resetDemoChatFlow, usePendingClaims } from '@/hooks/use-claims-notifica
 import { paths } from '@/routes/paths'
 import { services } from '@/services'
 import { mockTools } from '@/services/dev-tools'
+import { CaseSimulatorSheet } from './case-simulator-sheet'
 
 function initials(name: string) {
   return name
@@ -33,6 +35,7 @@ export function AccountMenu() {
   const { user, loading } = useAuth()
   const queryClient = useQueryClient()
   const tools = mockTools
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false)
 
   // Estado reactivo de notificaciones sincronizado con localStorage (finder:has-read-claims).
   const storedPendingClaims = usePendingClaims()
@@ -44,121 +47,146 @@ export function AccountMenu() {
   if (loading) return <Skeleton className="size-8 rounded-full" />
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {user ? (
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Mi cuenta">
-            <div className="relative">
-              <Avatar>
-                <AvatarFallback>{initials(user.displayName)}</AvatarFallback>
-              </Avatar>
-              {pendingClaims > 0 ? (
-                <span
-                  className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-destructive ring-2 ring-background"
-                  aria-hidden
-                />
-              ) : null}
-            </div>
-          </Button>
-        ) : (
-          <Button variant="ghost">Entrar</Button>
-        )}
-      </DropdownMenuTrigger>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          {user ? (
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Mi cuenta">
+              <div className="relative">
+                <Avatar>
+                  <AvatarFallback>{initials(user.displayName)}</AvatarFallback>
+                </Avatar>
+                {pendingClaims > 0 ? (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-destructive ring-2 ring-background"
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
+            </Button>
+          ) : (
+            <Button variant="ghost">Entrar</Button>
+          )}
+        </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-72">
-        {user ? (
-          <>
-            <DropdownMenuLabel>
-              <p className="font-medium text-foreground">{user.displayName}</p>
-              <p className="font-normal">{user.email}</p>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link to={paths.profile}>Mi perfil</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={paths.myItems}>Mis publicaciones</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={paths.myClaims}>Mis reclamaciones</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  to={paths.claimReview('FND-8492')}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span>Mensajes</span>
-                  {pendingClaims > 0 ? (
-                    <Badge variant="destructive" className="ml-auto shrink-0">
-                      {pendingClaims} nuevo
+        <DropdownMenuContent align="end" className="w-72">
+          {user ? (
+            <>
+              <DropdownMenuLabel>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium text-foreground">{user.displayName}</p>
+                  {user.isGuest ? (
+                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
+                      Invitado
                     </Badge>
                   ) : null}
-                </Link>
+                </div>
+                <p className="font-normal text-xs text-muted-foreground">{user.email}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                {user.isGuest ? (
+                  <DropdownMenuItem asChild className="font-semibold text-primary">
+                    <Link to={paths.completeAccount}>
+                      <Sparkles className="mr-1.5 size-4 text-primary" />
+                      Completar cuenta
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem asChild>
+                  <Link to={paths.profile}>Mi perfil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={paths.myItems}>Mis publicaciones</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={paths.myClaims}>Mis reclamaciones</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    to={paths.claimReview('FND-8492')}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span>Mensajes</span>
+                    {pendingClaims > 0 ? (
+                      <Badge variant="destructive" className="ml-auto shrink-0">
+                        {pendingClaims} nuevo
+                      </Badge>
+                    ) : null}
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </>
+          ) : (
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link to={paths.login}>Entrar</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={paths.register}>Crear cuenta</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-          </>
-        ) : (
-          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link to={paths.login}>Entrar</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to={paths.register}>Crear cuenta</Link>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        )}
+          )}
 
-        {tools ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="flex items-center gap-1.5">
-              <FlaskConical className="size-3.5" aria-hidden />
-              Datos de ejemplo: entrar como…
-            </DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {tools.getMockAccounts().map((account) => (
+          {tools ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="flex items-center gap-1.5">
+                <FlaskConical className="size-3.5" aria-hidden />
+                Datos de ejemplo: entrar como…
+              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                {tools.getMockAccounts().map((account) => (
+                  <DropdownMenuItem
+                    key={account.id}
+                    disabled={account.id === user?.id}
+                    onSelect={() => {
+                      tools.switchMockUser(account.id)
+                      refreshData()
+                    }}
+                  >
+                    {account.displayName}
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuItem
-                  key={account.id}
-                  disabled={account.id === user?.id}
                   onSelect={() => {
-                    tools.switchMockUser(account.id)
+                    tools.resetMockData()
+                    resetDemoChatFlow()
                     refreshData()
+                    toast.success('Datos de ejemplo restaurados')
                   }}
                 >
-                  {account.displayName}
+                  <RotateCcw />
+                  Restaurar datos de ejemplo
                 </DropdownMenuItem>
-              ))}
+                <DropdownMenuItem onSelect={() => setIsSimulatorOpen(true)}>
+                  <SlidersHorizontal className="size-3.5" />
+                  Simular casos…
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </>
+          ) : null}
+
+          {user ? (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                onSelect={() => {
-                  tools.resetMockData()
-                  resetDemoChatFlow()
+                onSelect={async () => {
+                  await services.signOut()
                   refreshData()
-                  toast.success('Datos de ejemplo restaurados')
                 }}
               >
-                <RotateCcw />
-                Restaurar datos de ejemplo
+                <LogOut />
+                Salir
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </>
-        ) : null}
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        {user ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={async () => {
-                await services.signOut()
-                refreshData()
-              }}
-            >
-              <LogOut />
-              Salir
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      {tools ? (
+        <CaseSimulatorSheet open={isSimulatorOpen} onOpenChange={setIsSimulatorOpen} />
+      ) : null}
+    </>
   )
 }

@@ -12,6 +12,8 @@ export interface Item {
   type: ItemType
   title: string
   description: string
+  // Historia opcional y creativa que escribe quien lo encontró. Pública. Nunca debe contener el detalle oculto.
+  story?: string
   category: CategoryId
   photos: string[]
   city: string
@@ -35,6 +37,8 @@ export interface NewItemInput {
   type: ItemType
   title: string
   description: string
+  // Historia opcional y creativa que escribe quien lo encontró. Pública. Nunca debe contener el detalle oculto.
+  story?: string
   category: CategoryId
   photos: string[]
   city: string
@@ -44,8 +48,11 @@ export interface NewItemInput {
 }
 
 // Filtros del buscador. Todos son opcionales.
+export type DateFilterPeriod = '24h' | '7d' | '30d'
+
 export interface ItemFilters {
   query?: string
   category?: CategoryId
   city?: string
+  datePeriod?: DateFilterPeriod
 }

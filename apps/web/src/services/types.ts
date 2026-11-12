@@ -2,9 +2,15 @@ import type {
   AuthUser,
   Claim,
   ClaimStatus,
+  Donation,
+  DonationFilters,
+  DonationRequest,
+  IdentityStatus,
   Item,
   ItemFilters,
   NewClaimInput,
+  NewDonationInput,
+  NewDonationRequestInput,
   NewItemInput,
   User,
 } from '@finder/shared'
@@ -19,6 +25,23 @@ export interface Services {
   onAuthChange(listener: (user: AuthUser | null) => void): () => void
   signIn(email: string, password: string): Promise<AuthUser>
   signUp(input: { email: string; password: string; displayName: string }): Promise<AuthUser>
+  signInWithGoogle(): Promise<AuthUser>
+  sendEmailVerification(): Promise<void>
+  verifyEmail(code: string): Promise<void>
+
+  // — Publicar sin cuenta previa y completar cuenta (hallador temporal) —
+  startGuestPublish(email: string): Promise<void>
+  confirmGuestEmail(code: string): Promise<AuthUser>
+  signInWithGuestLink(code: string): Promise<AuthUser>
+  completeGuestAccount(input: { displayName: string; password: string }): Promise<AuthUser>
+
+  // — Verificación de identidad (RGPD: minimización de datos) —
+  // Finder NUNCA almacena ni ve la foto del documento ni el selfie de la persona.
+  // El proceso transcurre dentro del proveedor externo (tipo Veriff/Sumsub/Didit)
+  // y a Finder solo le llega el veredicto final: verificado o no.
+  startIdentityVerification(documentType: 'dni' | 'passport'): Promise<{ sessionId: string }>
+  getIdentityStatus(): Promise<IdentityStatus>
+
   signOut(): Promise<void>
 
   // — Personas —
@@ -38,11 +61,42 @@ export interface Services {
   getMyClaims(): Promise<Claim[]>
   getClaimsOnMyItems(): Promise<Claim[]>
   resolveClaim(claimId: string, status: Exclude<ClaimStatus, 'pending'>): Promise<void>
+  cancelClaim(claimId: string): Promise<void>
+
+  // — Donaciones (definición en docs/PRODUCTO.md, punto 5) —
+  /** Catálogo: solo las donaciones disponibles. */
+  getDonations(filters?: DonationFilters): Promise<Donation[]>
+  getDonation(id: string): Promise<Donation | null>
+  getMyDonations(): Promise<Donation[]>
+  createDonation(input: NewDonationInput): Promise<Donation>
+  /** Quien dona confirma que ya la ha entregado: reservada → donada. */
+  markDonationDelivered(donationId: string): Promise<void>
+  /** Si la entrega no sale: vuelve a estar disponible y las solicitudes vuelven a pendientes. */
+  reopenDonation(donationId: string): Promise<void>
+
+  // — Solicitudes de donación —
+  /** Solicitar no reserva el objeto: puede haber varias solicitudes a la vez. */
+  createDonationRequest(input: NewDonationRequestInput): Promise<DonationRequest>
+  getMyDonationRequests(): Promise<DonationRequest[]>
+  getRequestsOnMyDonations(): Promise<DonationRequest[]>
+  /** Quien dona ELIGE: esa solicitud queda aceptada, las demás no seleccionadas y la donación reservada. */
+  acceptDonationRequest(requestId: string): Promise<void>
+  cancelDonationRequest(requestId: string): Promise<void>
 }
 
 // Error con un mensaje pensado para enseñárselo a la persona tal cual.
 export class ServiceError extends Error {
-  code: 'not-found' | 'not-signed-in' | 'not-allowed' | 'invalid'
+  code:
+    | 'not-found'
+    | 'not-signed-in'
+    | 'not-allowed'
+    | 'invalid'
+    | 'already-exists'
+    | 'too-many-requests'
+    | 'network'
+    | 'expired'
+    | 'already-used'
+    | 'popup-closed'
 
   constructor(code: ServiceError['code'], message: string) {
     super(message)

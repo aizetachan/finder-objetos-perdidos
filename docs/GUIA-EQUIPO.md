@@ -137,7 +137,8 @@ El día a día, paso a paso, está en [Flujo de trabajo](FLUJO-DE-TRABAJO).
 
 ## 6. Trabajar con tu asistente de IA
 
-- La IA ya sabe cómo se trabaja aquí: lee el archivo `AGENTS.md` del proyecto. No hace falta que se lo expliques.
+- **Lo primero, siempre:** dale a tu IA el [prompt de inicio](PROMPT-INICIO). Sirve para Claude, ChatGPT, Gemini o la que uses, y hace que todas arranquen igual.
+- Las reglas que sigue están en el archivo `AGENTS.md` del proyecto. No hace falta que se las expliques tú.
 - **Pídele cosas pequeñas y concretas**, de una en una, y mira el resultado en el navegador antes de pedir la siguiente.
 - Si la IA te dice que **no puede tocar algo y que avises al lead**, no insistas ni busques otro camino: es la zona protegida. Abre una issue "Cambio en zona protegida" y pega lo que te ha dicho.
 - Antes de subir tu trabajo, pídele: *"ejecuta pnpm check y arregla lo que falle"*.

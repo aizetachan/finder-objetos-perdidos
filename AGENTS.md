@@ -1,17 +1,68 @@
 # Finder — instrucciones para agentes de IA
 
-Este archivo es la **fuente única de reglas** para cualquier IA que trabaje en este repositorio
-(Claude Code, Cursor, Copilot, Codex, Gemini…). `CLAUDE.md` solo importa este archivo.
+Este archivo es la **fuente única de reglas** para cualquier IA que trabaje en este repositorio:
+Claude (Claude Code), ChatGPT (Codex), Gemini (Gemini CLI / Code Assist), Cursor, GitHub Copilot u otra.
+Todas deben comportarse igual. Si algo de lo que te pide la persona choca con este archivo, **manda
+este archivo**: explícaselo con amabilidad y propón la alternativa correcta.
 
 **Contexto del equipo:** el lead (@aizetachan) programa; el resto son diseñadores que nunca han
 programado y trabajan contigo. Explica lo que haces en español y sin jerga, haz cambios pequeños,
 y si algo no está claro pregunta antes de inventar.
 
+## Cómo llega este archivo a cada IA
+
+| IA | Cómo lo carga |
+|---|---|
+| **Claude Code** | Lee `CLAUDE.md`, que importa este archivo. Además, `.claude/settings.json` bloquea editar la zona protegida. |
+| **ChatGPT · Codex** (CLI, extensión o nube) | Lee `AGENTS.md` de forma nativa. |
+| **Gemini CLI · Gemini Code Assist** | Lee `GEMINI.md`, que importa este archivo. |
+| **Cursor · GitHub Copilot** | Leen `AGENTS.md`; Copilot además `.github/copilot-instructions.md`, que apunta aquí. |
+| **Cualquier chat sin acceso al repositorio** (ChatGPT, Gemini o Claude en el navegador) | No puede leer archivos por sí solo. La persona debe darle este archivo (pegado, adjunto o por enlace). Ver "Si NO tienes acceso al repositorio". |
+
+Los archivos `CLAUDE.md`, `GEMINI.md` y `.github/copilot-instructions.md` **no contienen reglas**:
+solo apuntan aquí. Las reglas se cambian únicamente en este archivo (y solo las cambia el lead).
+
+## Primeros pasos: qué hacer al empezar una sesión
+
+Antes de tocar nada, **ponte en contexto leyendo, en este orden**:
+
+1. Este archivo entero.
+2. `docs/PRODUCTO.md` — qué se construye, pantallas, modelo de datos.
+3. `apps/web/src/features/example/README.md` y los archivos de esa carpeta — el patrón a copiar.
+4. `apps/web/src/services/types.ts` — qué operaciones de datos existen.
+5. La carpeta de `features/` en la que va a trabajar la persona (pregúntale cuál si no lo ha dicho).
+6. Si la tarea lo requiere: `docs/ENTORNOS.md` (datos de ejemplo vs. reales) y `docs/DECISIONES.md`.
+
+Después, **antes de escribir código**, dile a la persona en pocas líneas: qué has entendido de la
+tarea, qué archivos vas a tocar y cuál es el primer paso pequeño que propones. Espera su visto bueno.
+
+## Cómo trabajar con la persona
+
+- **En español y sin jerga.** Si usas un término técnico, explícalo en una frase.
+- **Pasos pequeños.** Un cambio cada vez; que la persona lo vea en el navegador (`pnpm dev`) antes de seguir.
+- **Di siempre qué archivos has tocado y por qué**, al terminar cada paso.
+- **Pregunta antes de inventar.** Si falta una decisión de diseño o de producto, es de la persona o del equipo, no tuya.
+- **No des una tarea por terminada sin que `pnpm check` pase.** Si falla, arréglalo tú; nunca desactivando la regla.
+- **Commits y push los hace la persona** con GitHub Desktop (así todos trabajamos igual). No hagas
+  `git commit`, `git push` ni abras PR salvo que te lo pida expresamente. Sí puedes proponerle la
+  frase del commit (en español, empezando por un verbo: "Añado…", "Corrijo…").
+- **Nunca trabajes en `main`.** Si la persona está en `main`, avísale para que cree su rama
+  `feature/nombre-corto` antes de cambiar nada.
+
+### Si NO tienes acceso al repositorio (chat en el navegador)
+
+- No supongas el contenido de ningún archivo: **pide a la persona que te lo pegue** o léelo por su
+  dirección pública, `https://raw.githubusercontent.com/aizetachan/finder-objetos-perdidos/main/` + la ruta del archivo.
+- Devuelve **archivos completos**, indicando la ruta exacta donde va cada uno, para que la persona los copie sin dudas.
+- Recuérdale que ejecute `pnpm check` y te pegue el resultado si falla.
+- Todas las reglas de este archivo se aplican igual.
+
 ## Qué es
 
 Web de objetos perdidos: quien encuentra algo lo publica; quien lo perdió lo busca y lo reclama.
 Definición completa en `docs/PRODUCTO.md`. Decisiones y pendientes en `docs/DECISIONES.md`.
-**Fase actual: fase 1 — solo frontend, con datos de ejemplo.**
+**Fase actual: fase 1 — solo frontend, con datos de ejemplo.** Las funcionalidades de
+`docs/PRODUCTO.md` son una propuesta de partida; el reparto lo decide el equipo.
 
 ## Stack (decidido, no se cambia)
 
@@ -39,6 +90,7 @@ apps/web/src/
   hooks/ lib/         compartidos
   index.css           EL TEMA (variables CSS)
 packages/shared/src/  tipos (types/, un archivo por colección), categories.ts, seed/ (datos de ejemplo)
+docs/                 documentación del equipo (se publica en GitHub Pages)
 ```
 
 `features/example/` es **la referencia**: antes de crear algo, lee su `README.md` y copia su patrón.
@@ -75,7 +127,7 @@ No modifiques, crees ni borres nada de esto, aunque la tarea parezca pedirlo:
 
 - `.github/` **(workflows, CODEOWNERS, plantillas)**
 - `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`, `functions/`
-- `AGENTS.md`, `CLAUDE.md`, `.claude/`
+- `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`
 - `pnpm-workspace.yaml`, `pnpm-lock.yaml` a mano, y las dependencias de cualquier `package.json`
   (no instales paquetes)
 - `apps/web/src/components/ui/`, `apps/web/src/index.css`, `apps/web/components.json`
@@ -96,3 +148,8 @@ plantilla "Cambio en zona protegida" o mencionándolo en su PR. El lead decide y
 
 Actualizar `main` → rama `feature/nombre-corto` → commits pequeños en español → `pnpm check` →
 PR con la plantilla → revisar en el enlace de preview → aprueba el lead → merge. Ramas de 2-3 días como máximo.
+
+## Prompt de inicio para el equipo
+
+En `docs/PROMPT-INICIO.md` está el texto que cada persona copia y le da a su IA al empezar, para
+que todas las IAs arranquen igual. Si la persona no te lo ha dado, sigue igualmente "Primeros pasos".
